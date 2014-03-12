@@ -211,3 +211,8 @@ def get_command_parser(cmd):
         }
     parser.set_usage(usage)
     return parser
+
+
+def main():
+    # Setuptools console_scripts entry point
+    return run_argv(sys.argv, sys.stdin, sys.stdout, sys.stderr)

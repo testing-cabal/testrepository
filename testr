@@ -13,7 +13,10 @@
 # license you chose for the specific language governing permissions and
 # limitations under that license.
 
-"""The CLI entry point to testrepository.
+"""Convenience local CLI entry point to testrepository.
+
+Primary CLI usage is via setuptools console_script entrypoint
+testrepository.commands:main
 
 No program logic is in this script - see testrepository.commands.run_argv.
 """

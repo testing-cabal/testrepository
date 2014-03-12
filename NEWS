@@ -11,6 +11,9 @@ CHANGES
 * Isolate the testrepository test suite from the chunking (or otherwise)
   behaviour of testtools' exception handlers. (Robert Collins)
 
+* pbr is now used to manage build and release tooling.
+  (Monty Taylor, Robert Collins)
+
 0.0.20
 ++++++
 

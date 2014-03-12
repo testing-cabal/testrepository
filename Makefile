@@ -14,10 +14,13 @@
 
 all: README.txt check
 
+editable:
+	pip install -e .[test]
+
 .testrepository:
 	./testr init
 
-check: .testrepository
+check: editable .testrepository
 	./testr run --parallel
 
 check-xml:
@@ -26,7 +29,7 @@ check-xml:
 release:
 	./setup.py sdist upload --sign
 
-README.txt: testrepository/commands/quickstart.py
+README.txt: editable testrepository/commands/quickstart.py
 	./testr quickstart > $@
 
-.PHONY: check check-xml release all
+.PHONY: check check-xml editable release all

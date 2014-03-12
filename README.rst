@@ -1,6 +1,9 @@
 Test Repository
 +++++++++++++++
 
+.. image:: https://travis-ci.org/testing-cabal/mock.svg?branch=master
+    :target: https://travis-ci.org/testing-cabal/mock
+
 Overview
 ~~~~~~~~
 

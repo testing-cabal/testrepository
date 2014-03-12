@@ -4,3 +4,9 @@
 /testrepository.egg-info
 __pycache__
 *~
+*.egg/
+*.pyc
+AUTHORS
+ChangeLog
+.tox
+doc/build/

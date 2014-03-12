@@ -1,0 +1,6 @@
+flake8==2.0
+
+pytz
+sphinx>=1.1.2,<1.2
+testresources
+testscenarios

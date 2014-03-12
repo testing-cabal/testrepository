@@ -4,9 +4,9 @@
 /testrepository.egg-info
 __pycache__
 *~
+*.egg/
 *.pyc
 AUTHORS
 ChangeLog
 .tox
 doc/build/
-pbr-0.6-py2.7.egg/

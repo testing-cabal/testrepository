@@ -1,0 +1,3 @@
+fixtures
+python-subunit >= 0.0.10
+testtools >= 0.9.30

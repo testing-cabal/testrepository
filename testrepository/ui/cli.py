@@ -267,6 +267,8 @@ class UI(ui.AbstractUI):
         parser.add_option("-q", "--quiet", action="store_true", default=False,
             help="Turn off output other than the primary output for a command "
             "and any errors.")
+        parser.add_option("-p", "--profile", action="store",
+                          type='str', default='DEFAULT', help="Profile to use")
         # yank out --, as optparse makes it silly hard to just preserve it.
         try:
             where_dashdash = self._argv.index('--')

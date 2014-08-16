@@ -33,6 +33,9 @@ from testtools import StreamToDict, TestResult
 class AbstractRepositoryFactory(object):
     """Interface for making or opening repositories."""
 
+    def __init__(self, profile='DEFAULT'):
+        self._profile = profile
+
     def initialise(self, url):
         """Create a repository at URL. 
 

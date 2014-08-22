@@ -5,3 +5,9 @@
 __pycache__
 *.pyc
 *~
+*.egg/
+*.pyc
+AUTHORS
+ChangeLog
+.tox
+doc/build/

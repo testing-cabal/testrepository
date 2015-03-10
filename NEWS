@@ -5,6 +5,12 @@ testrepository release notes
 NEXT (In development)
 +++++++++++++++++++++
 
+CHANGES
+-------
+
+* Isolate the testrepository test suite from the chunking (or otherwise)
+  behaviour of testtools' exception handlers. (Robert Collins)
+
 0.0.20
 ++++++
 

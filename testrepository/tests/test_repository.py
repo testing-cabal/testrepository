@@ -28,6 +28,7 @@ from subunit import (
 from testresources import TestResource
 from testtools import (
     clone_test_with_new_id,
+    content,
     PlaceHolder,
     )
 import testtools
@@ -103,19 +104,24 @@ class Case(ResourcedTestCase):
     def passing(self):
         pass
 
-    def failing(self):
-        self.fail("oops")
-
     def unexpected_success(self):
         self.expectFailure("unexpected success", self.assertTrue, True)
 
+
+class FailingCase:
+
+    def run(self, result):
+        result.startTest(self)
+        result.addError(
+            self, None, details={'traceback': content.text_content("")})
+        result.stopTest(self)
 
 def make_test(id, should_pass):
     """Make a test."""
     if should_pass:
         case = Case("passing")
     else:
-        case = Case("failing")
+        case = FailingCase()
     return clone_test_with_new_id(case, id)
 
 

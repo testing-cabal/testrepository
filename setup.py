@@ -105,6 +105,7 @@ setup(name='testrepository',
             'pytz',
             'testresources',
             'testscenarios',
+            'mock',
             ]
         ),
       entry_points={

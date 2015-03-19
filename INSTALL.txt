@@ -22,6 +22,8 @@ Test dependencies
 
 * testscenarios (https://launchpad.net/testscenarios).
 
+* mock (https://pypi.python.org/pypi/mock).
+
 Installing
 ~~~~~~~~~~
 

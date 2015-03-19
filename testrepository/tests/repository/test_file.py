@@ -19,6 +19,7 @@ import shutil
 import tempfile
 
 from fixtures import Fixture
+import mock
 from testtools.matchers import Raises, MatchesException
 
 from testrepository.repository import file
@@ -100,3 +101,9 @@ class TestFileRepository(ResourcedTestCase):
         open(os.path.join(repo.base, 'next-stream'), 'wb').close()
         self.assertThat(repo.count, Raises(
             MatchesException(ValueError("Corrupt next-stream file: ''"))))
+
+    def test_get_test_run_unexpected_ioerror_errno(self):
+        repo = self.useFixture(FileRepositoryFixture(self)).repo
+        with mock.patch('__builtin__.open', mock.mock_open()) as open_patch:
+            open_patch.side_effect = IOError()
+            self.assertRaises(IOError, repo.get_test_run, 'test_fake')

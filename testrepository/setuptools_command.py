@@ -42,6 +42,7 @@ class Testr(cmd.Command):
          "from each testr worker."),
         ('testr-args=', 't', "Run 'testr' with these args"),
         ('omit=', 'o', 'Files to omit from coverage calculations'),
+        ('coverage-package-name=', None, "Use this name for coverage package"),
         ('slowest', None, "Show slowest test times after tests complete."),
     ]
 
@@ -56,6 +57,7 @@ class Testr(cmd.Command):
         self.coverage = None
         self.omit = ""
         self.slowest = None
+        self.coverage_package_name = None
 
     def finalize_options(self):
         if self.testr_args is None:
@@ -86,6 +88,10 @@ class Testr(cmd.Command):
         package = self.distribution.get_name()
         if package.startswith('python-'):
             package = package[7:]
+
+        # Use this as coverage package name
+        if self.coverage_package_name:
+            package = self.coverage_package_name
         options = "--source %s --parallel-mode" % package
         os.environ['PYTHON'] = ("coverage run %s" % options)
 

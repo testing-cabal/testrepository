@@ -157,7 +157,7 @@ class TestCLIUI(ResourcedTestCase):
         self.assertThat(ui._stdout.buffer.getvalue().decode('utf8'),
             DocTestMatches("""\
 ======================================================================
-FAIL: testrepository.tests.ui.test_cli.Case.method
+FAIL: testrepository.tests.ui.test_cli...Case.method
 ----------------------------------------------------------------------
 ...Traceback (most recent call last):...
   File "...test_cli.py", line ..., in method

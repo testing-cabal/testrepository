@@ -8,6 +8,9 @@ NEXT (In development)
 CHANGES
 -------
 
+* setup.py testr now supports different coverage names.
+  (Marc Abramowitz, #1298398)
+
 * Isolate the testrepository test suite from the chunking (or otherwise)
   behaviour of testtools' exception handlers. (Robert Collins)
 
@@ -15,7 +18,7 @@ CHANGES
   (Monty Taylor, Robert Collins)
 
 * Unexpected errors reading streams from a file repository now propogate the
-  correct exception. (Matthew Treinish, Robert Collins)
+  correct exception. (Matthew Treinish, Robert Collins, #1409936)
 
 0.0.20
 ++++++

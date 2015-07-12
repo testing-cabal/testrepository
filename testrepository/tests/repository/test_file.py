@@ -100,3 +100,11 @@ class TestFileRepository(ResourcedTestCase):
         open(os.path.join(repo.base, 'next-stream'), 'wb').close()
         self.assertThat(repo.count, Raises(
             MatchesException(ValueError("Corrupt next-stream file: ''"))))
+
+    def test_get_test_run_unexpected_ioerror_errno(self):
+        repo = self.useFixture(FileRepositoryFixture(self)).repo
+        inserter = repo.get_inserter()
+        inserter.startTestRun()
+        inserter.stopTestRun()
+        os.chmod(os.path.join(repo.base, '0'), 0000)
+        self.assertRaises(IOError, repo.get_test_run, '0')

@@ -133,6 +133,7 @@ class Repository(AbstractRepository):
         except IOError as e:
             if e.errno == errno.ENOENT:
                 raise KeyError("No such run.")
+            raise
         return _DiskRun(run_id, run_subunit_content)
 
     def _get_inserter(self, partial):

@@ -14,6 +14,9 @@ CHANGES
 * pbr is now used to manage build and release tooling.
   (Monty Taylor, Robert Collins)
 
+* Unexpected errors reading streams from a file repository now propogate the
+  correct exception. (Matthew Treinish, Robert Collins)
+
 0.0.20
 ++++++
 

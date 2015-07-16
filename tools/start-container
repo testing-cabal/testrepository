@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -e
+
+function container {
+  local version=$1
+  host=$(ls ~/.virtualenvs/testrepository-$version-* -d | sed -e "s/^.*testrepository-$version-//")
+  if [ -z "$host" ]; then
+    echo "No host found for $version"
+    return 1
+  fi
+  container=$host
+  return 0
+}
+
+function start {
+  local host=$1
+  local state=$(sudo lxc-info -s -H -n $host)
+  if [ "RUNNING" != "$state" ]; then
+    sudo lxc-start -d -n $host 1>2
+    sudo lxc-wait -n $host -s RUNNING -t 2 1>2
+  fi
+  ssh $host "cd $PWD && ~/.virtualenvs/testrepository-$profile-$host/bin/pip install -e .[test] && ~/.virtualenvs/testrepository-$profile-$host/bin/pip uninstall -y testrepository" 1>2
+}
+
+profile=$1
+profile=2.7
+count=$2
+container $profile
+# We use one container
+start $host
+# And have no intrinsic concurrency limits
+for i in $(seq 1 4); do #$count); do
+  echo -n " $i"
+done
+echo

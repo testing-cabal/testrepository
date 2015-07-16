@@ -282,7 +282,9 @@ Configuring profiles and environments
 -------------------------------------
 
 There are five callouts that testrepository depends on - configured in
-.testr.conf as usual. For instance::
+.testr.conf as usual.
+
+For instance::
 
   list_profiles=echo py27 py34
   default_profiles=echo py27

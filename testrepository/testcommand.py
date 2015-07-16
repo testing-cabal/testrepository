@@ -473,6 +473,13 @@ class TestListingFixture(Fixture):
             # No concurrency logic known.
             return None
 
+    def default_profiles(self):
+        """Callout to determine profiles to use by default."""
+        out = self._callout('default_profiles')
+        if out is None:
+            return set()
+        return set([s for s in out.split() if s])
+
     def list_profiles(self):
         """Callout to determine available profiles."""
         out = self._callout('list_profiles')

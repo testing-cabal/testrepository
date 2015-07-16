@@ -547,6 +547,40 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual(None, fixture.callout_concurrency())
         self.assertEqual([], ui.outputs)
 
+    def test_default_profiles(self):
+        ui, command = self.get_test_ui_and_cmd()
+        ui.proc_outputs = [_b('py27 py34')]
+        self.set_config(
+            '[DEFAULT]\ndefault_profiles=probe\n'
+            'test_command=foo\n')
+        fixture = self.useFixture(command.get_run_command())
+        self.assertEqual(set(['py27', 'py34']), fixture.default_profiles())
+        self.assertEqual([
+            ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',)], ui.outputs)
+
+    def test_default_profiles_failed(self):
+        ui, command = self.get_test_ui_and_cmd()
+        ui.proc_results = [1]
+        self.set_config(
+            '[DEFAULT]\ndefault_profiles=probe\n'
+            'test_command=foo\n')
+        fixture = self.useFixture(command.get_run_command())
+        self.assertThat(lambda:fixture.default_profiles(), raises(
+            ValueError("default_profiles failed: exit code 1, stderr=''")))
+        self.assertEqual([
+            ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',)], ui.outputs)
+
+    def test_default_profiles_not_set(self):
+        ui, command = self.get_test_ui_and_cmd()
+        self.set_config(
+            '[DEFAULT]\n'
+            'test_command=foo\n')
+        fixture = self.useFixture(command.get_run_command())
+        self.assertEqual(set(), fixture.default_profiles())
+        self.assertEqual([], ui.outputs)
+
     def test_list_profiles(self):
         ui, command = self.get_test_ui_and_cmd()
         ui.proc_outputs = [_b('py27 py34')]

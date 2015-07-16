@@ -444,20 +444,26 @@ class TestListingFixture(Fixture):
             partition.extend(group_ids[group_id])
         return partitions
 
-    def callout_concurrency(self):
-        """Callout for user defined concurrency."""
+    def _callout(self, key):
+        """Make a callout."""
         try:
-            concurrency_cmd = self._parser.get(
-                'DEFAULT', 'test_run_concurrency')
+            cmd = self._parser.get('DEFAULT', key)
         except ConfigParser.NoOptionError:
             return None
-        run_proc = self.ui.subprocess_Popen(concurrency_cmd, shell=True,
+        run_proc = self.ui.subprocess_Popen(cmd, shell=True,
             stdout=subprocess.PIPE, stdin=subprocess.PIPE)
         out, err = run_proc.communicate()
         if run_proc.returncode:
             raise ValueError(
-                "test_run_concurrency failed: exit code %d, stderr='%s'" % (
-                run_proc.returncode, err.decode('utf8', 'replace')))
+                "%s failed: exit code %d, stderr='%s'" % (
+                key, run_proc.returncode, err.decode('utf8', 'replace')))
+        return out
+
+    def callout_concurrency(self):
+        """Callout for user defined concurrency."""
+        out = self._callout('test_run_concurrency')
+        if out is None:
+            return None
         return int(out.strip())
 
     def local_concurrency(self):
@@ -466,6 +472,13 @@ class TestListingFixture(Fixture):
         except NotImplementedError:
             # No concurrency logic known.
             return None
+
+    def list_profiles(self):
+        """Callout to determine available profiles."""
+        out = self._callout('list_profiles')
+        if out is None:
+            return set()
+        return set([s for s in out.split() if s])
 
 
 class TestCommand(Fixture):

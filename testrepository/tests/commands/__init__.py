@@ -13,24 +13,3 @@
 # limitations under that license.
 
 """Tests for commands."""
-
-import unittest
-
-def test_suite():
-    names = [
-        'commands',
-        'failing',
-        'help',
-        'init',
-        'last',
-        'list_tests',
-        'load',
-        'quickstart',
-        'run',
-        'slowest',
-        'stats',
-        ]
-    module_names = ['testrepository.tests.commands.test_' + name for name in
-        names]
-    loader = unittest.TestLoader()
-    return loader.loadTestsFromNames(module_names)

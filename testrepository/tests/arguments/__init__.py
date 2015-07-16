@@ -13,17 +13,3 @@
 # limitations under that license.
 
 """Tests for individual arguments."""
-
-import unittest
-
-def test_suite():
-    names = [
-        'command',
-        'doubledash',
-        'path',
-        'string',
-        ]
-    module_names = ['testrepository.tests.arguments.test_' + name for name in
-        names]
-    loader = unittest.TestLoader()
-    return loader.loadTestsFromNames(module_names)

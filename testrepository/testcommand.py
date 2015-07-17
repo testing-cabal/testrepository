@@ -36,6 +36,10 @@ from fixtures import Fixture
 v2 = try_import('subunit.v2')
 
 from testrepository import results
+from testrepository._computecontext import (
+    Cache,
+    Instance,
+    )
 from testrepository.testlist import (
     parse_enumeration,
     write_list,
@@ -330,7 +334,7 @@ class TestListingFixture(Fixture):
                 instance_prefix = self._parser.get(
                     'DEFAULT', 'instance_execute')
                 variables = {
-                    'INSTANCE_ID': instance.decode('utf8'),
+                    'INSTANCE_ID': instance.id.decode('utf8'),
                     'COMMAND': cmd,
                     # --list-tests cannot use FILES, so handle it being unset.
                     'FILES': getattr(self, 'list_file_name', None) or '',
@@ -515,27 +519,28 @@ class TestCommand(Fixture):
         super(TestCommand, self).__init__()
         self.ui = ui
         self.repository = repository
-        self._instances = None
-        self._allocated_instances = None
+        self._instance_cache = None
 
     def setUp(self):
         super(TestCommand, self).setUp()
-        self._instances = set()
-        self._allocated_instances = set()
+        self._instance_cache = Cache()
         self.addCleanup(self._dispose_instances)
 
     def _dispose_instances(self):
-        instances = self._instances
-        if instances is None:
+        cache = self._instance_cache
+        if cache is None:
             return
-        self._instances = None
-        self._allocated_instances = None
+        self._instance_cache = None
         try:
             dispose_cmd = self.get_parser().get('DEFAULT', 'instance_dispose')
         except (ValueError, ConfigParser.NoOptionError):
+            # User has said we don't need to dispose of instances.
             return
         variable_regex = '\$INSTANCE_IDS'
-        dispose_cmd = re.sub(variable_regex, ' '.join(sorted(instance.decode('utf') for instance in instances)),
+        instances = cache.all()
+        dispose_cmd = re.sub(
+            variable_regex,
+            ' '.join(sorted(instance.id.decode('utf') for instance in instances)),
             dispose_cmd)
         self.ui.output_values([('running', dispose_cmd)])
         run_proc = self.ui.subprocess_Popen(dispose_cmd, shell=True)
@@ -559,7 +564,7 @@ class TestCommand(Fixture):
         
         See TestListingFixture for the definition of test_ids and test_filters.
         """
-        if self._instances is None:
+        if self._instance_cache is None:
             raise TypeError('TestCommand not setUp')
         parser = self.get_parser()
         try:
@@ -628,7 +633,7 @@ class TestCommand(Fixture):
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """
-        while len(self._instances) < concurrency:
+        while self._instance_cache.size() < concurrency:
             try:
                 cmd = self.get_parser().get('DEFAULT', 'instance_provision')
             except ConfigParser.NoOptionError:
@@ -636,7 +641,7 @@ class TestCommand(Fixture):
                 return None
             variable_regex = '\$INSTANCE_COUNT'
             cmd = re.sub(variable_regex,
-                str(concurrency - len(self._instances)), cmd)
+                str(concurrency - self._instance_cache.size()), cmd)
             self.ui.output_values([('running', cmd)])
             proc = self.ui.subprocess_Popen(
                 cmd, shell=True, stdout=subprocess.PIPE)
@@ -644,15 +649,11 @@ class TestCommand(Fixture):
             if proc.returncode:
                 raise ValueError('Provisioning instances failed, return %d' %
                     proc.returncode)
-            new_instances = set([item.strip() for item in out.split()])
-            self._instances.update(new_instances)
-        # Cached first.
-        available_instances = self._instances - self._allocated_instances
+            new_instances = set([Instance(item.strip()) for item in out.split()])
+            list(map(self._instance_cache.add, new_instances))
         # We only ask for instances when one should be available.
-        result = available_instances.pop()
-        self._allocated_instances.add(result)
-        return result
+        return self._instance_cache.allocate()
 
-    def release_instance(self, instance_id):
+    def release_instance(self, instance):
         """Return instance_ids to the pool for reuse."""
-        self._allocated_instances.remove(instance_id)
+        self._instance_cache.release(instance)

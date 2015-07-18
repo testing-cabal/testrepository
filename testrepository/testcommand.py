@@ -334,7 +334,7 @@ class TestListingFixture(Fixture):
                 instance_prefix = self._parser.get(
                     'DEFAULT', 'instance_execute')
                 variables = {
-                    'INSTANCE_ID': instance.id.decode('utf8'),
+                    'INSTANCE_ID': instance.id,
                     'COMMAND': cmd,
                     # --list-tests cannot use FILES, so handle it being unset.
                     'FILES': getattr(self, 'list_file_name', None) or '',
@@ -540,7 +540,7 @@ class TestCommand(Fixture):
         instances = cache.all()
         dispose_cmd = re.sub(
             variable_regex,
-            ' '.join(sorted(instance.id.decode('utf') for instance in instances)),
+            ' '.join(sorted(instance.id for instance in instances)),
             dispose_cmd)
         self.ui.output_values([('running', dispose_cmd)])
         run_proc = self.ui.subprocess_Popen(dispose_cmd, shell=True)
@@ -649,6 +649,7 @@ class TestCommand(Fixture):
             if proc.returncode:
                 raise ValueError('Provisioning instances failed, return %d' %
                     proc.returncode)
+            out = out.decode('utf-8')
             new_instances = set([Instance(item.strip()) for item in out.split()])
             list(map(self._instance_cache.add, new_instances))
         # We only ask for instances when one should be available.

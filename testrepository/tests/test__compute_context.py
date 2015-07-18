@@ -14,6 +14,8 @@
 
 """Tests for the _computecontext module."""
 
+from __future__ import unicode_literals
+
 from testrepository._computecontext import (
     Cache,
     Instance,
@@ -29,6 +31,9 @@ class TestInstance(ResourcedTestCase):
     def test_in_set(self):
         instances = set()
         instances.add(Instance('2'))
+
+    def test_rejects_bytes(self):
+        self.assertRaises(ValueError, Instance, b'1')
 
 
 class TestCache(ResourcedTestCase):

@@ -14,6 +14,8 @@
 
 """Tests for the testcommand module."""
 
+from __future__ import unicode_literals
+
 from io import BytesIO
 import os.path
 import optparse
@@ -109,8 +111,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo\n'
             'instance_dispose=bar $INSTANCE_IDS\n')
-        command._instance_cache.add(Instance(_b('baz')))
-        command._instance_cache.add(Instance(_b('quux')))
+        command._instance_cache.add(Instance('baz'))
+        command._instance_cache.add(Instance('quux'))
         command.cleanUp()
         command.setUp()
         self.assertEqual([
@@ -124,8 +126,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo\n'
             'instance_dispose=bar $INSTANCE_IDS\n')
-        command._instance_cache.add(Instance(_b('baz')))
-        command._instance_cache.add(Instance(_b('quux')))
+        command._instance_cache.add(Instance('baz'))
+        command._instance_cache.add(Instance('quux'))
         self.assertThat(command.cleanUp,
             raises(ValueError('Disposing of instances failed, return 1')))
         command.setUp()
@@ -195,7 +197,7 @@ class TestTestCommand(ResourcedTestCase):
             stream.status(test_id='ids', test_status='exists')
             subunit_bytes = buffer.getvalue()
         else:
-            subunit_bytes = _b('returned\nids\n')
+            subunit_bytes = b'returned\nids\n'
         ui.proc_outputs = [subunit_bytes]
         ui.options = optparse.Values()
         ui.options.parallel = True
@@ -254,7 +256,7 @@ class TestTestCommand(ResourcedTestCase):
         ui.here = self.tempdir
         cmd = run.run(ui)
         ui.set_command(cmd)
-        ui.proc_outputs = [_b('returned\ninstances\n')]
+        ui.proc_outputs = [b'returned\ninstances\n']
         command = self.useFixture(TestCommand(ui, None))
         self.set_config(
             '[DEFAULT]\ntest_command=foo $LISTOPT $IDLIST\ntest_id_list_default=whoo yea\n'
@@ -290,10 +292,10 @@ class TestTestCommand(ResourcedTestCase):
             'test_list_option=--list\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
         fixture = self.useFixture(command.get_run_command())
-        command._instance_cache.add(Instance(_b('bar')))
+        command._instance_cache.add(Instance('bar'))
         fixture.list_tests()
         self.assertEqual(1, command._instance_cache.size())
-        self.assertEqual(Instance(b'bar'), command._instance_cache.allocate())
+        self.assertEqual(Instance('bar'), command._instance_cache.allocate())
         self.assertEqual([
             ('values', [('running', 'quux bar -- foo --list whoo yea')]),
             ('popen', ('quux bar -- foo --list whoo yea',),
@@ -317,7 +319,7 @@ class TestTestCommand(ResourcedTestCase):
             stream.status(test_id='ids', test_status='exists')
             subunit_bytes = buffer.getvalue()
         else:
-            subunit_bytes = _b('returned\nids\n')
+            subunit_bytes = b'returned\nids\n'
         ui, command = self.get_test_ui_and_cmd()
         ui.proc_outputs = [subunit_bytes]
         self.set_config(
@@ -432,8 +434,8 @@ class TestTestCommand(ResourcedTestCase):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n')
-        command._instance_cache.add(Instance(_b('foo')))
-        command._instance_cache.add(Instance(_b('bar')))
+        command._instance_cache.add(Instance('foo'))
+        command._instance_cache.add(Instance('bar'))
         fixture = self.useFixture(command.get_run_command())
         procs = fixture.run_tests()
         self.assertEqual([
@@ -448,7 +450,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
-        command._instance_cache.add(Instance(_b('bar')))
+        command._instance_cache.add(Instance('bar'))
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         procs = fixture.run_tests()
         self.assertEqual([
@@ -471,9 +473,9 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
-        command._instance_cache.add(Instance(_b('baz')))
+        command._instance_cache.add(Instance('baz'))
         command._instance_cache.allocate()
-        command._instance_cache.add(Instance(_b('bar')))
+        command._instance_cache.add(Instance('bar'))
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         procs = fixture.run_tests()
         self.assertEqual([
@@ -489,7 +491,7 @@ class TestTestCommand(ResourcedTestCase):
         procs[0].stdout.read()
         self.assertEqual(0, procs[0].returncode)
         self.assertEqual(2, command._instance_cache.size())
-        self.assertEqual(Instance(b'bar'), command._instance_cache.allocate())
+        self.assertEqual(Instance('bar'), command._instance_cache.allocate())
         self.assertRaises(KeyError, command._instance_cache.allocate)
 
     def test_run_tests_list_file_in_FILES(self):
@@ -497,7 +499,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDFILE\n'
             'instance_execute=quux $INSTANCE_ID $FILES -- $COMMAND\n')
-        command._instance_cache.add(Instance(_b('bar')))
+        command._instance_cache.add(Instance('bar'))
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         list_file = fixture.list_file_name
         procs = fixture.run_tests()
@@ -523,7 +525,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_callout_concurrency(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('4')]
+        ui.proc_outputs = [b'4']
         self.set_config(
             '[DEFAULT]\ntest_run_concurrency=probe\n'
             'test_command=foo\n')
@@ -557,7 +559,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_default_profiles(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('py27 py34')]
+        ui.proc_outputs = [b'py27 py34']
         self.set_config(
             '[DEFAULT]\ndefault_profiles=probe\n'
             'test_command=foo\n')
@@ -591,7 +593,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_list_profiles(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('py27 py34')]
+        ui.proc_outputs = [b'py27 py34']
         self.set_config(
             '[DEFAULT]\nlist_profiles=probe\n'
             'test_command=foo\n')
@@ -631,7 +633,7 @@ class TestTestCommand(ResourcedTestCase):
             stream.status(test_id='ids', test_status='exists')
             subunit_bytes = buffer.getvalue()
         else:
-            subunit_bytes = _b('returned\nids\n')
+            subunit_bytes = b'returned\nids\n'
         ui, command = self.get_test_ui_and_cmd()
         ui.proc_outputs = [subunit_bytes]
         self.set_config(
@@ -643,7 +645,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_filter_tests_by_regex_supplied_ids(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('returned\nids\n')]
+        ui.proc_outputs = [b'returned\nids\n']
         self.set_config(
             '[DEFAULT]\ntest_command=foo $LISTOPT $IDLIST\ntest_id_list_default=whoo yea\n'
             'test_list_option=--list\n')
@@ -654,7 +656,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_filter_tests_by_regex_supplied_ids_multi_match(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('returned\nids\n')]
+        ui.proc_outputs = [b'returned\nids\n']
         self.set_config(
             '[DEFAULT]\ntest_command=foo $LISTOPT $IDLIST\ntest_id_list_default=whoo yea\n'
             'test_list_option=--list\n')

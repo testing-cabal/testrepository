@@ -18,7 +18,15 @@ __all__ = ['Cache', 'Instance']
 
 from collections import namedtuple
 
-Instance = namedtuple('Instance', 'id')
+import six
+
+_Instance = namedtuple('Instance', 'id')
+class Instance(_Instance):
+
+    def __init__(self, *args):
+        for arg in args:
+            if arg is not None and type(arg) is not six.text_type:
+                raise ValueError('Bad argument %r' % (arg,))
 
 
 class Cache:

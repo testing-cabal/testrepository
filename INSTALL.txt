@@ -11,6 +11,8 @@ Run time dependencies
 * fixtures (https://launchpad.net/python-fixtures, or
    http://pypi.python.org/pypi/fixtures/).
 
+* six.
+
 Test dependencies
 ~~~~~~~~~~~~~~~~~
 

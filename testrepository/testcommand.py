@@ -650,7 +650,8 @@ class TestCommand(Fixture):
                 raise ValueError('Provisioning instances failed, return %d' %
                     proc.returncode)
             out = out.decode('utf-8')
-            new_instances = set([Instance(item.strip()) for item in out.split()])
+            profile = u"DEFAULT"
+            new_instances = set([Instance(profile, item.strip()) for item in out.split()])
             list(map(self._instance_cache.add, new_instances))
         # We only ask for instances when one should be available.
         return self._instance_cache.allocate()

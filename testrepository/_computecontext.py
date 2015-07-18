@@ -20,7 +20,7 @@ from collections import namedtuple
 
 import six
 
-_Instance = namedtuple('Instance', 'id')
+_Instance = namedtuple('Instance', ['profile', 'id'])
 class Instance(_Instance):
 
     def __init__(self, *args):

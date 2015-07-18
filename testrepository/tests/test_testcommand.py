@@ -111,8 +111,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo\n'
             'instance_dispose=bar $INSTANCE_IDS\n')
-        command._instance_cache.add(Instance('baz'))
-        command._instance_cache.add(Instance('quux'))
+        command._instance_cache.add(Instance('p', 'baz'))
+        command._instance_cache.add(Instance('p', 'quux'))
         command.cleanUp()
         command.setUp()
         self.assertEqual([
@@ -126,8 +126,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo\n'
             'instance_dispose=bar $INSTANCE_IDS\n')
-        command._instance_cache.add(Instance('baz'))
-        command._instance_cache.add(Instance('quux'))
+        command._instance_cache.add(Instance('p', 'baz'))
+        command._instance_cache.add(Instance('p', 'quux'))
         self.assertThat(command.cleanUp,
             raises(ValueError('Disposing of instances failed, return 1')))
         command.setUp()
@@ -292,10 +292,10 @@ class TestTestCommand(ResourcedTestCase):
             'test_list_option=--list\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
         fixture = self.useFixture(command.get_run_command())
-        command._instance_cache.add(Instance('bar'))
+        command._instance_cache.add(Instance('p', 'bar'))
         fixture.list_tests()
         self.assertEqual(1, command._instance_cache.size())
-        self.assertEqual(Instance('bar'), command._instance_cache.allocate())
+        self.assertEqual(Instance('p', 'bar'), command._instance_cache.allocate())
         self.assertEqual([
             ('values', [('running', 'quux bar -- foo --list whoo yea')]),
             ('popen', ('quux bar -- foo --list whoo yea',),
@@ -434,8 +434,8 @@ class TestTestCommand(ResourcedTestCase):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n')
-        command._instance_cache.add(Instance('foo'))
-        command._instance_cache.add(Instance('bar'))
+        command._instance_cache.add(Instance('p', 'foo'))
+        command._instance_cache.add(Instance('p', 'bar'))
         fixture = self.useFixture(command.get_run_command())
         procs = fixture.run_tests()
         self.assertEqual([
@@ -450,7 +450,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
-        command._instance_cache.add(Instance('bar'))
+        command._instance_cache.add(Instance('p', 'bar'))
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         procs = fixture.run_tests()
         self.assertEqual([
@@ -473,9 +473,9 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
-        command._instance_cache.add(Instance('baz'))
+        command._instance_cache.add(Instance('p', 'baz'))
         command._instance_cache.allocate()
-        command._instance_cache.add(Instance('bar'))
+        command._instance_cache.add(Instance('p', 'bar'))
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         procs = fixture.run_tests()
         self.assertEqual([
@@ -491,7 +491,7 @@ class TestTestCommand(ResourcedTestCase):
         procs[0].stdout.read()
         self.assertEqual(0, procs[0].returncode)
         self.assertEqual(2, command._instance_cache.size())
-        self.assertEqual(Instance('bar'), command._instance_cache.allocate())
+        self.assertEqual(Instance('p', 'bar'), command._instance_cache.allocate())
         self.assertRaises(KeyError, command._instance_cache.allocate)
 
     def test_run_tests_list_file_in_FILES(self):
@@ -499,7 +499,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDFILE\n'
             'instance_execute=quux $INSTANCE_ID $FILES -- $COMMAND\n')
-        command._instance_cache.add(Instance('bar'))
+        command._instance_cache.add(Instance('p', 'bar'))
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         list_file = fixture.list_file_name
         procs = fixture.run_tests()

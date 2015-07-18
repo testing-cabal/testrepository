@@ -25,15 +25,17 @@ from testrepository.tests import ResourcedTestCase
 class TestInstance(ResourcedTestCase):
 
     def test_fields(self):
-        instance = Instance('1')
+        instance = Instance('profile', '1')
+        self.assertEqual('profile', instance.profile)
         self.assertEqual('1', instance.id)
 
-    def test_in_set(self):
+    def test_can_be_put_in_set(self):
         instances = set()
-        instances.add(Instance('2'))
+        instances.add(Instance('profile', '2'))
 
     def test_rejects_bytes(self):
-        self.assertRaises(ValueError, Instance, b'1')
+        self.assertRaises(ValueError, Instance, 'profile', b'1')
+        self.assertRaises(ValueError, Instance, b'profile', '1')
 
 
 class TestCache(ResourcedTestCase):
@@ -44,7 +46,7 @@ class TestCache(ResourcedTestCase):
 
     def test_smoke(self):
         cache = Cache()
-        instance = Instance('1')
+        instance = Instance('profile', '1')
         cache.add(instance)
         # Can't remove unallocated instances.
         self.assertRaises(KeyError, cache.remove, instance)
@@ -59,8 +61,8 @@ class TestCache(ResourcedTestCase):
 
     def test_all(self):
         cache = Cache()
-        instance1 = Instance('1')
-        instance2 = Instance('2')
+        instance1 = Instance('profile', '1')
+        instance2 = Instance('profile', '2')
         cache.add(instance1)
         cache.add(instance2)
         cache.allocate()

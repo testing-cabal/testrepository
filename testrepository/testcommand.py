@@ -174,6 +174,76 @@ def local_concurrency():
 
 compiled_re_type = type(re.compile(''))
 
+
+class RunInInstance(Fixture):
+    """Knows how to run commands in an instance.
+    
+    This involves:
+     - variable substitutions for INSTANCE_ID and INSTANCE_PROFILE only.
+     - allocating and releasing the instance around a command
+     - copying files into the remote instance
+    
+    This does not involve:
+     - managing the instance lifecycle
+    """
+
+    def __init__(self, ui, instance_source, config):
+        """Create a RunInInstance.
+
+        :param ui: The ui object to provide user feedback and perform Popen.
+        :param instance_source: An instance source.
+        :param config: The ConfigParser configuration.
+        """
+        super(RunInInstance, self).__init__()
+        self._ui = ui
+        self._instance_source = instance_source
+        self._parser = config
+
+    def _setUp(self):
+        self._instance = self._instance_source.obtain_instance()
+        if self._instance is not None:
+            self.addCleanup(
+                self._instance_source.release_instance, self._instance)
+
+    def _create_cmd(self, cmd, copyfile):
+        """Peform variable substition for cmd.
+        
+        :param cmd: The string command to run.
+        :param copyfile: None or a file to copy.
+        """
+        if self._instance is None:
+            return cmd
+        try:
+            instance_prefix = self._parser.get('DEFAULT', 'instance_execute')
+            variables = {
+                'INSTANCE_ID': self._instance.id,
+                'COMMAND': cmd,
+                # --list-tests cannot use FILES, so handle it being unset.
+                'FILES': copyfile or '',
+            }
+            variable_regex = '\$(INSTANCE_ID|COMMAND|FILES)'
+            def subst(match):
+                return variables.get(match.groups(1)[0], '')
+            cmd = re.sub(variable_regex, subst, instance_prefix)
+        except ConfigParser.NoOptionError:
+            # Per-instance execution environment not configured.
+            pass
+        return cmd
+
+    def spawn(self, cmd, copyfile):
+        """Spawn cmd in the environment.
+
+        :param cmd: The string command to spawn.
+        :param copyfile: None or the name of a local file to copy into the
+            environment.
+        """
+        cmd = self._create_cmd(cmd, copyfile)
+        self._ui.output_values([('running', cmd)])
+        run_proc = self._ui.subprocess_Popen(cmd, shell=True,
+            stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        return run_proc
+
+
 class TestListingFixture(Fixture):
     """Write a temporary file to disk with test ids in it."""
 
@@ -267,7 +337,7 @@ class TestListingFixture(Fixture):
             idlist = ''
         else:
             self.test_ids = self.filter_tests(self.test_ids)
-            name = self.make_listfile()
+            name = self._make_listfile()
             variables['IDFILE'] = name
             idlist = ' '.join(self.test_ids)
         variables['IDLIST'] = idlist
@@ -281,7 +351,7 @@ class TestListingFixture(Fixture):
             variables['IDOPTION'] = idoption
         self.cmd = re.sub(variable_regex, subst, cmd)
 
-    def make_listfile(self):
+    def _make_listfile(self):
         name = None
         try:
             if self._listpath:
@@ -314,6 +384,9 @@ class TestListingFixture(Fixture):
                     return True
         return list(filter(include, test_ids))
 
+    # XXX Entry point for list_tests command.
+    #     Use cases: - all tests across all profiles [testr list-tests], testr run --isolated
+    #                - tests for one profile for scheduling?
     def list_tests(self):
         """List the tests returned by list_cmd.
 
@@ -321,11 +394,9 @@ class TestListingFixture(Fixture):
         """
         if '$LISTOPT' not in self.template:
             raise ValueError("LISTOPT not configured in .testr.conf")
-        instance, list_cmd = self._per_instance_command(self.list_cmd)
-        try:
-            self.ui.output_values([('running', list_cmd)])
-            run_proc = self.ui.subprocess_Popen(list_cmd, shell=True,
-                stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        with RunInInstance(self.ui, self._instance_source, self._parser) as runner:
+            run_proc = runner.spawn(
+                self.list_cmd, getattr(self, 'list_file_name', None))
             out, err = run_proc.communicate()
             if run_proc.returncode != 0:
                 if v2 is not None:
@@ -340,36 +411,16 @@ class TestListingFixture(Fixture):
                     % (run_proc.returncode))
             ids = parse_enumeration(out)
             return ids
-        finally:
-            if instance:
-                self._instance_source.release_instance(instance)
 
-    def _per_instance_command(self, cmd):
+    def _per_instance_command(self, cmd, runner):
         """Customise cmd to with an instance-id.
         
         :param concurrency: The number of instances to ask for (used to avoid
             death-by-1000 cuts of latency.
         """
-        instance = self._instance_source.obtain_instance()
-        if instance is not None:
-            try:
-                instance_prefix = self._parser.get(
-                    'DEFAULT', 'instance_execute')
-                variables = {
-                    'INSTANCE_ID': instance.id,
-                    'COMMAND': cmd,
-                    # --list-tests cannot use FILES, so handle it being unset.
-                    'FILES': getattr(self, 'list_file_name', None) or '',
-                }
-                variable_regex = '\$(INSTANCE_ID|COMMAND|FILES)'
-                def subst(match):
-                    return variables.get(match.groups(1)[0], '')
-                cmd = re.sub(variable_regex, subst, instance_prefix)
-            except ConfigParser.NoOptionError:
-                # Per-instance execution environment not configured.
-                pass
-        return instance, cmd
+        return runner._create_cmd(cmd, getattr(self, 'list_file_name', None))
 
+    # entry point, for self, and for commands.run.
     def run_tests(self):
         """Run the tests defined by the command and ui.
 
@@ -380,19 +431,18 @@ class TestListingFixture(Fixture):
         if self.concurrency == 1 and (test_ids is None or test_ids):
             # Have to customise cmd here, as instances are allocated
             # just-in-time. XXX: Indicates this whole region needs refactoring.
-            instance, cmd = self._per_instance_command(self.cmd)
-            self.ui.output_values([('running', cmd)])
-            run_proc = self.ui.subprocess_Popen(cmd, shell=True,
-                stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-            # Prevent processes stalling if they read from stdin; we could
-            # pass this through in future, but there is no point doing that
-            # until we have a working can-run-debugger-inline story.
-            run_proc.stdin.close()
-            if instance:
-                return [CallWhenProcFinishes(run_proc,
-                    lambda:self._instance_source.release_instance(instance))]
-            else:
-                return [run_proc]
+            runner = RunInInstance(self.ui, self._instance_source, self._parser)
+            try:
+                runner.setUp()
+                run_proc = runner.spawn(self.cmd, getattr(self, 'list_file_name', None))
+                # Prevent processes stalling if they read from stdin; we could
+                # pass this through in future, but there is no point doing that
+                # until we have a working can-run-debugger-inline story.
+                run_proc.stdin.close()
+                return [CallWhenProcFinishes(run_proc, runner.cleanUp)]
+            except:
+                runner.cleanUp()
+                raise
         test_id_groups = self.partition_tests(test_ids, self.concurrency)
         for test_ids in test_id_groups:
             if not test_ids:

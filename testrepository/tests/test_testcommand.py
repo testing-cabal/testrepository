@@ -37,6 +37,7 @@ from testrepository.commands import run
 from testrepository._computecontext import Instance
 from testrepository.ui.model import UI
 from testrepository.repository import memory
+from testrepository import testcommand
 from testrepository.testcommand import TestCommand
 from testrepository.tests import ResourcedTestCase, Wildcard
 from testrepository.tests.stubpackage import TempDirResource
@@ -55,18 +56,14 @@ class TestTestCommand(ResourcedTestCase):
     resources = [('tempdir', TempDirResource())]
 
     def get_test_ui_and_cmd(self, options=(), args=(), repository=None):
-        self.dirty()
-        ui = UI(options=options, args=args)
-        ui.here = self.tempdir
-        return ui, self.useFixture(TestCommand(ui, repository))
+        ui, cmd = self.get_test_ui_and_cmd2(options, args, repository)
+        return ui, self.useFixture(cmd)
 
-    def get_test_ui_and_cmd2(self, options=(), args=()):
+    def get_test_ui_and_cmd2(self, options=(), args=(), repository=None):
         self.dirty()
         ui = UI(options=options, args=args)
         ui.here = self.tempdir
-        cmd = run.run(ui)
-        ui.set_command(cmd)
-        return ui, cmd
+        return ui, TestCommand(ui, repository)
 
     def dirty(self):
         # Ugly: TODO - improve testresources to make this go away.
@@ -189,7 +186,6 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual(expected_cmd, fixture.cmd)
 
     def test_get_run_command_default_and_list_expands(self):
-        ui, command = self.get_test_ui_and_cmd()
         if v2_avail:
             buffer = BytesIO()
             stream = subunit.StreamResultToBytes(buffer)
@@ -198,14 +194,17 @@ class TestTestCommand(ResourcedTestCase):
             subunit_bytes = buffer.getvalue()
         else:
             subunit_bytes = b'returned\nids\n'
+        options = optparse.Values()
+        options.parallel = True
+        options.concurrency = 2
+        ui, command = self.get_test_ui_and_cmd2()
+        ui.options = options
         ui.proc_outputs = [subunit_bytes]
-        ui.options = optparse.Values()
-        ui.options.parallel = True
-        ui.options.concurrency = 2
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST $LISTOPT\n'
             'test_id_list_default=whoo yea\n'
             'test_list_option=--list\n')
+        self.useFixture(command)
         fixture = self.useFixture(command.get_run_command())
         expected_cmd = 'foo returned ids '
         self.assertEqual(expected_cmd, fixture.cmd)
@@ -530,8 +529,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_run_concurrency=probe\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertEqual(4, fixture.callout_concurrency())
+        self.assertEqual(
+            4, testcommand._callout_concurrency(command.get_parser(), ui))
         self.assertEqual([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',)], ui.outputs)
@@ -542,9 +541,10 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_run_concurrency=probe\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertThat(lambda:fixture.callout_concurrency(), raises(
-            ValueError("test_run_concurrency failed: exit code 1, stderr=''")))
+        self.assertThat(
+            lambda:testcommand._callout_concurrency(command.get_parser(), ui),
+            raises(ValueError(
+                "test_run_concurrency failed: exit code 1, stderr=''")))
         self.assertEqual([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',)], ui.outputs)
@@ -554,8 +554,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertEqual(None, fixture.callout_concurrency())
+        self.assertEqual(
+            None, testcommand._callout_concurrency(command.get_parser(), ui))
         self.assertEqual([], ui.outputs)
 
     def test_default_profiles(self):

@@ -140,6 +140,38 @@ class CallWhenProcFinishes(object):
         return self._proc.wait()
 
 
+def _callout(key, parser, ui):
+    """Make a callout."""
+    try:
+        cmd = parser.get('DEFAULT', key)
+    except ConfigParser.NoOptionError:
+        return None
+    run_proc = ui.subprocess_Popen(cmd, shell=True,
+        stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+    out, err = run_proc.communicate()
+    if run_proc.returncode:
+        raise ValueError(
+            "%s failed: exit code %d, stderr='%s'" % (
+            key, run_proc.returncode, err.decode('utf8', 'replace')))
+    return out
+
+
+def _callout_concurrency(parser, ui):
+    """Callout for user defined concurrency."""
+    out = _callout('test_run_concurrency', parser, ui)
+    if out is None:
+        return None
+    return int(out.strip())
+
+
+def local_concurrency():
+    try:
+        return multiprocessing.cpu_count()
+    except NotImplementedError:
+        # No concurrency logic known.
+        return None
+
+
 compiled_re_type = type(re.compile(''))
 
 class TestListingFixture(Fixture):
@@ -147,7 +179,8 @@ class TestListingFixture(Fixture):
 
     def __init__(self, test_ids, cmd_template, listopt, idoption, ui,
         repository, parallel=True, listpath=None, parser=None,
-        test_filters=None, instance_source=None, group_callback=None):
+        test_filters=None, instance_source=None, group_callback=None,
+        concurrency=None):
         """Create a TestListingFixture.
 
         :param test_ids: The test_ids to use. May be None indicating that
@@ -178,7 +211,7 @@ class TestListingFixture(Fixture):
             matches all your criteria. Filters are automatically applied by
             run_tests(), or can be applied by calling filter_tests(test_ids).
         :param instance_source: A source of test run instances. Must support
-            obtain_instance(max_concurrency) -> id and release_instance(id)
+            obtain_instance() -> id and release_instance(id)
             calls.
         :param group_callback: If supplied, should be a function that accepts a
             test id and returns a group id. A group id is an arbitrary value
@@ -197,6 +230,8 @@ class TestListingFixture(Fixture):
         self.test_filters = test_filters
         self._group_callback = group_callback
         self._instance_source = instance_source
+        assert concurrency is not None
+        self.concurrency = concurrency
 
     def setUp(self):
         super(TestListingFixture, self).setUp()
@@ -216,19 +251,6 @@ class TestListingFixture(Fixture):
         def list_subst(match):
             return list_variables.get(match.groups(1)[0], '')
         self.list_cmd = re.sub(variable_regex, list_subst, cmd)
-        nonparallel = (not self.parallel or not
-            getattr(self.ui, 'options', None) or not
-            getattr(self.ui.options, 'parallel', None))
-        if nonparallel:
-            self.concurrency = 1
-        else:
-            self.concurrency = self.ui.options.concurrency
-            if not self.concurrency:
-                self.concurrency = self.callout_concurrency()
-            if not self.concurrency:
-                self.concurrency = self.local_concurrency()
-            if not self.concurrency:
-                self.concurrency = 1
         if self.test_ids is None:
             if self.concurrency == 1:
                 if default_idstr:
@@ -329,7 +351,7 @@ class TestListingFixture(Fixture):
         """
         if self._instance_source is None:
             return None, cmd
-        instance = self._instance_source.obtain_instance(self.concurrency)
+        instance = self._instance_source.obtain_instance()
         if instance is not None:
             try:
                 instance_prefix = self._parser.get(
@@ -380,7 +402,8 @@ class TestListingFixture(Fixture):
             fixture = self.useFixture(TestListingFixture(test_ids,
                 self.template, self.listopt, self.idoption, self.ui,
                 self.repository, parallel=False, parser=self._parser,
-                instance_source=self._instance_source))
+                instance_source=self._instance_source,
+                concurrency=1))
             result.extend(fixture.run_tests())
         return result
 
@@ -449,45 +472,16 @@ class TestListingFixture(Fixture):
             partition.extend(group_ids[group_id])
         return partitions
 
-    def _callout(self, key):
-        """Make a callout."""
-        try:
-            cmd = self._parser.get('DEFAULT', key)
-        except ConfigParser.NoOptionError:
-            return None
-        run_proc = self.ui.subprocess_Popen(cmd, shell=True,
-            stdout=subprocess.PIPE, stdin=subprocess.PIPE)
-        out, err = run_proc.communicate()
-        if run_proc.returncode:
-            raise ValueError(
-                "%s failed: exit code %d, stderr='%s'" % (
-                key, run_proc.returncode, err.decode('utf8', 'replace')))
-        return out
-
-    def callout_concurrency(self):
-        """Callout for user defined concurrency."""
-        out = self._callout('test_run_concurrency')
-        if out is None:
-            return None
-        return int(out.strip())
-
-    def local_concurrency(self):
-        try:
-            return multiprocessing.cpu_count()
-        except NotImplementedError:
-            # No concurrency logic known.
-            return None
-
     def default_profiles(self):
         """Callout to determine profiles to use by default."""
-        out = self._callout('default_profiles')
+        out = _callout('default_profiles', self._parser, self.ui)
         if out is None:
             return set()
         return set([s for s in out.split() if s])
 
     def list_profiles(self):
         """Callout to determine available profiles."""
-        out = self._callout('list_profiles')
+        out = _callout('list_profiles', self._parser, self.ui)
         if out is None:
             return set()
         return set([s for s in out.split() if s])
@@ -526,6 +520,19 @@ class TestCommand(Fixture):
         super(TestCommand, self).setUp()
         self._instance_cache = Cache()
         self.addCleanup(self._dispose_instances)
+        nonparallel = (
+            not getattr(self.ui, 'options', None) or
+            not getattr(self.ui.options, 'parallel', None))
+        if nonparallel:
+            self.concurrency = 1
+        else:
+            self.concurrency = self.ui.options.concurrency
+            if not self.concurrency:
+                self.concurrency = _callout_concurrency(self.get_parser(), self.ui)
+            if not self.concurrency:
+                self.concurrency = local_concurrency()
+            if not self.concurrency:
+                self.concurrency = 1
 
     def _dispose_instances(self):
         cache = self._instance_cache
@@ -613,7 +620,7 @@ class TestCommand(Fixture):
         result = run_factory(test_ids, cmd, listopt, idoption,
             self.ui, self.repository, parser=parser,
             test_filters=test_filters, instance_source=self,
-            group_callback=group_callback)
+            group_callback=group_callback, concurrency=self.concurrency)
         return result
 
     def get_filter_tags(self):
@@ -626,14 +633,14 @@ class TestCommand(Fixture):
             return set()
         return set([tag.strip() for tag in tags.split()])
 
-    def obtain_instance(self, concurrency):
+    def obtain_instance(self):
         """If possible, get one or more test run environment instance ids.
         
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """
         profile = u"DEFAULT"
-        while self._instance_cache.size() < concurrency:
+        while self._instance_cache.size() < self.concurrency:
             try:
                 cmd = self.get_parser().get('DEFAULT', 'instance_provision')
             except ConfigParser.NoOptionError:
@@ -641,7 +648,7 @@ class TestCommand(Fixture):
                 return None
             variable_regex = '\$INSTANCE_COUNT'
             cmd = re.sub(variable_regex,
-                str(concurrency - self._instance_cache.size()), cmd)
+                str(self.concurrency - self._instance_cache.size()), cmd)
             self.ui.output_values([('running', cmd)])
             proc = self.ui.subprocess_Popen(
                 cmd, shell=True, stdout=subprocess.PIPE)

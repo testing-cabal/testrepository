@@ -564,8 +564,9 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ndefault_profiles=probe\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertEqual(set(['py27', 'py34']), fixture.default_profiles())
+        self.assertEqual(
+            set(['py27', 'py34']),
+            testcommand._default_profiles(command.get_parser(), ui))
         self.assertEqual([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',)], ui.outputs)
@@ -576,8 +577,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ndefault_profiles=probe\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertThat(lambda:fixture.default_profiles(), raises(
+        self.assertThat(lambda:testcommand._default_profiles(
+            command.get_parser(), ui), raises(
             ValueError("default_profiles failed: exit code 1, stderr=''")))
         self.assertEqual([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
@@ -588,8 +589,9 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertEqual(set(), fixture.default_profiles())
+        self.assertEqual(
+            set(),
+            testcommand._default_profiles(command.get_parser(), ui))
         self.assertEqual([], ui.outputs)
 
     def test_list_profiles(self):
@@ -598,8 +600,9 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\nlist_profiles=probe\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertEqual(set(['py27', 'py34']), fixture.list_profiles())
+        self.assertEqual(
+            set(['py27', 'py34']),
+            testcommand._list_profiles(command.get_parser(), ui))
         self.assertEqual([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',)], ui.outputs)
@@ -610,8 +613,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\nlist_profiles=probe\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertThat(lambda:fixture.list_profiles(), raises(
+        self.assertThat(lambda:testcommand._list_profiles(
+            command.get_parser(), ui), raises(
             ValueError("list_profiles failed: exit code 1, stderr=''")))
         self.assertEqual([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
@@ -622,8 +625,9 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\n'
             'test_command=foo\n')
-        fixture = self.useFixture(command.get_run_command())
-        self.assertEqual(set(), fixture.list_profiles())
+        self.assertEqual(
+            set(),
+            testcommand._list_profiles(command.get_parser(), ui))
         self.assertEqual([], ui.outputs)
 
     def test_filter_tests_by_regex_only(self):

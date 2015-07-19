@@ -164,6 +164,22 @@ def _callout_concurrency(parser, ui):
     return int(out.strip())
 
 
+def _default_profiles(parser, ui):
+    """Callout to determine profiles to use by default."""
+    out = _callout('default_profiles', parser, ui)
+    if out is None:
+        return set()
+    return set([s for s in out.split() if s])
+
+
+def _list_profiles(parser, ui):
+    """Callout to determine available profiles."""
+    out = _callout('list_profiles', parser, ui)
+    if out is None:
+        return set()
+    return set([s for s in out.split() if s])
+
+
 def local_concurrency():
     try:
         return multiprocessing.cpu_count()
@@ -520,20 +536,6 @@ class TestListingFixture(Fixture):
         for partition, group_id in zip(itertools.cycle(partitions), unknown):
             partition.extend(group_ids[group_id])
         return partitions
-
-    def default_profiles(self):
-        """Callout to determine profiles to use by default."""
-        out = _callout('default_profiles', self._parser, self.ui)
-        if out is None:
-            return set()
-        return set([s for s in out.split() if s])
-
-    def list_profiles(self):
-        """Callout to determine available profiles."""
-        out = _callout('list_profiles', self._parser, self.ui)
-        if out is None:
-            return set()
-        return set([s for s in out.split() if s])
 
 
 class TestCommand(Fixture):

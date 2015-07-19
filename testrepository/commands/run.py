@@ -345,7 +345,10 @@ class run(Command):
         cmd.setUp()
         try:
             def run_tests():
-                run_procs = [('subunit', ReturnCodeToSubunit(proc)) for proc in cmd.run_tests()]
+                run_procs = []
+                for proc in cmd.run_tests():
+                    stream = ReturnCodeToSubunit(proc.run_proc)
+                    run_procs.append(('subunit', stream))
                 options = {}
                 if (self.ui.options.failing or self.ui.options.analyze_isolation
                     or self.ui.options.isolated):

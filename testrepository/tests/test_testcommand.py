@@ -146,27 +146,32 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
         fixture = command.get_run_command(['failing', 'alsofailing'])
-        try:
-            fixture.setUp()
-            list_file_path = fixture.list_file_name
+        with fixture:
+            procs = fixture.run_tests()
+            list_file_path = procs[0].list_file_name
             source = open(list_file_path, 'rt')
             try:
                 list_file_content = source.read()
             finally:
                 source.close()
+            procs[0].run_proc.stdout.read()
+            procs[0].run_proc.wait()
             self.assertEqual("failing\nalsofailing\n", list_file_content)
-        finally:
-            fixture.cleanUp()
         self.assertFalse(os.path.exists(list_file_path))
 
     def test_get_run_command_IDFILE_variable_setting(self):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
-        fixture = self.useFixture(
-            command.get_run_command(['failing', 'alsofailing']))
-        expected_cmd = 'foo --load-list %s' % fixture.list_file_name
-        self.assertEqual(expected_cmd, fixture.cmd)
+        fixture = self.useFixture(command.get_run_command(['failing', 'alsofailing']))
+        procs = fixture.run_tests()
+        expected_cmd = 'foo --load-list %s' % procs[0].list_file_name
+        procs[0].run_proc.wait()
+        self.assertEqual([
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': -1, 'stdout': -1})],
+            ui.outputs)
 
     def test_get_run_command_IDLIST_variable_setting(self):
         ui, command = self.get_test_ui_and_cmd()
@@ -174,16 +179,28 @@ class TestTestCommand(ResourcedTestCase):
             '[DEFAULT]\ntest_command=foo $IDLIST\n')
         fixture = self.useFixture(
             command.get_run_command(['failing', 'alsofailing']))
+        procs = fixture.run_tests()
         expected_cmd = 'foo failing alsofailing'
-        self.assertEqual(expected_cmd, fixture.cmd)
+        procs[0].run_proc.wait()
+        self.assertEqual([
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': -1, 'stdout': -1})],
+            ui.outputs)
 
     def test_get_run_command_IDLIST_default_is_empty(self):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n')
         fixture = self.useFixture(command.get_run_command())
+        procs = fixture.run_tests()
         expected_cmd = 'foo '
-        self.assertEqual(expected_cmd, fixture.cmd)
+        procs[0].run_proc.wait()
+        self.assertEqual([
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': -1, 'stdout': -1})],
+            ui.outputs)
 
     def test_get_run_command_default_and_list_expands(self):
         if v2_avail:
@@ -197,7 +214,8 @@ class TestTestCommand(ResourcedTestCase):
         options = optparse.Values()
         options.parallel = True
         options.concurrency = 2
-        ui, command = self.get_test_ui_and_cmd2()
+        repo = memory.RepositoryFactory().initialise('memory:')
+        ui, command = self.get_test_ui_and_cmd2(repository=repo)
         ui.options = options
         ui.proc_outputs = [subunit_bytes]
         self.set_config(
@@ -206,24 +224,53 @@ class TestTestCommand(ResourcedTestCase):
             'test_list_option=--list\n')
         self.useFixture(command)
         fixture = self.useFixture(command.get_run_command())
-        expected_cmd = 'foo returned ids '
-        self.assertEqual(expected_cmd, fixture.cmd)
+        del ui.outputs[:]
+        procs = fixture.run_tests()
+        list(map(lambda x:x.run_proc.wait(), procs))
+        self.assertThat(ui.outputs, MatchesAny(
+            Equals([
+            ('values', [('running', 'foo returned ')]),
+            ('popen', ('foo returned ',),
+             {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('values', [('running', 'foo ids ')]),
+            ('popen', ('foo ids ',),
+             {'shell': True, 'stdin': -1, 'stdout': -1})]),
+            Equals([
+            ('values', [('running', 'foo ids ')]),
+            ('popen', ('foo ids ',),
+             {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('values', [('running', 'foo returned ')]),
+            ('popen', ('foo returned ',),
+             {'shell': True, 'stdin': -1, 'stdout': -1})
+            ])))
 
     def test_get_run_command_IDLIST_default_passed_normally(self):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\ntest_id_list_default=whoo yea\n')
         fixture = self.useFixture(command.get_run_command())
+        procs = fixture.run_tests()
         expected_cmd = 'foo whoo yea'
-        self.assertEqual(expected_cmd, fixture.cmd)
+        procs[0].run_proc.wait()
+        self.assertEqual([
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': -1, 'stdout': -1})],
+            ui.outputs)
 
     def test_IDOPTION_evalutes_empty_string_no_ids(self):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
         fixture = self.useFixture(command.get_run_command())
+        procs = fixture.run_tests()
         expected_cmd = 'foo '
-        self.assertEqual(expected_cmd, fixture.cmd)
+        procs[0].run_proc.wait()
+        self.assertEqual([
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': -1, 'stdout': -1})],
+            ui.outputs)
 
     def test_group_regex_option(self):
         ui, command = self.get_test_ui_and_cmd()
@@ -241,8 +288,14 @@ class TestTestCommand(ResourcedTestCase):
             '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
         fixture = self.useFixture(command.get_run_command(
             testargs=('bar', 'quux')))
+        procs = fixture.run_tests()
         expected_cmd = 'foo  bar quux'
-        self.assertEqual(expected_cmd, fixture.cmd)
+        procs[0].run_proc.wait()
+        self.assertEqual([
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': -1, 'stdout': -1})],
+            ui.outputs)
 
     def test_list_tests_requests_concurrency_instances(self):
         # testr list-tests is non-parallel, so needs 1 instance.
@@ -462,14 +515,15 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual(1, command._instance_cache.size())
         self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
         # And after the process is run, bar is returned for re-use.
-        procs[0].stdout.read()
-        procs[0].wait()
-        self.assertEqual(0, procs[0].returncode)
+        procs[0].run_proc.stdout.read()
+        procs[0].run_proc.wait()
+        self.assertEqual(0, procs[0].run_proc.returncode)
         self.assertEqual(1, command._instance_cache.size())
         command._instance_cache.allocate('DEFAULT')
-        
+
     def test_run_tests_allocated_instances_skipped(self):
-        ui, command = self.get_test_ui_and_cmd()
+        repo = memory.RepositoryFactory().initialise('memory:')
+        ui, command = self.get_test_ui_and_cmd(repository=repo)
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
@@ -487,9 +541,9 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual(2, command._instance_cache.size())
         self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
         # And after the process is run, bar is returned for re-use.
-        procs[0].wait()
-        procs[0].stdout.read()
-        self.assertEqual(0, procs[0].returncode)
+        procs[0].run_proc.wait()
+        procs[0].run_proc.stdout.read()
+        self.assertEqual(0, procs[0].run_proc.returncode)
         self.assertEqual(2, command._instance_cache.size())
         self.assertEqual(Instance('DEFAULT', 'bar'), command._instance_cache.allocate('DEFAULT'))
         self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
@@ -501,8 +555,8 @@ class TestTestCommand(ResourcedTestCase):
             'instance_execute=quux $INSTANCE_ID $FILES -- $COMMAND\n')
         command._instance_cache.add(Instance('DEFAULT', 'bar'))
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
-        list_file = fixture.list_file_name
         procs = fixture.run_tests()
+        list_file = procs[0].list_file_name
         expected_cmd = 'quux bar %s -- foo %s' % (list_file, list_file)
         self.assertEqual([
             ('values', [('running', expected_cmd)]),
@@ -513,8 +567,9 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual(1, command._instance_cache.size())
         self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
         # And after the process is run, bar is returned for re-use.
-        procs[0].stdout.read()
-        self.assertEqual(0, procs[0].returncode)
+        procs[0].run_proc.stdout.read()
+        procs[0].run_proc.wait()
+        self.assertEqual(0, procs[0].run_proc.returncode)
         self.assertEqual(1, command._instance_cache.size())
         command._instance_cache.allocate('DEFAULT')
 

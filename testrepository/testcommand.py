@@ -101,7 +101,7 @@ testrconf_help = dedent("""
 
 class CallWhenProcFinishes(object):
     """Convert a process object to trigger a callback when returncode is set.
-    
+
     This just wraps the entire object and when the returncode attribute access
     finds a set value, calls the callback.
     """
@@ -137,7 +137,8 @@ class CallWhenProcFinishes(object):
         return result
 
     def wait(self):
-        return self._proc.wait()
+        self._proc.wait()
+        return self.returncode
 
 
 def _callout(key, parser, ui):
@@ -189,16 +190,17 @@ def local_concurrency():
 
 
 compiled_re_type = type(re.compile(''))
+run_regex = '\$(IDOPTION|IDFILE|IDLIST|LISTOPT)'
 
 
 class RunInInstance(Fixture):
     """Knows how to run commands in an instance.
-    
+
     This involves:
      - variable substitutions for INSTANCE_ID and INSTANCE_PROFILE only.
      - allocating and releasing the instance around a command
      - copying files into the remote instance
-    
+
     This does not involve:
      - managing the instance lifecycle
     """
@@ -223,7 +225,7 @@ class RunInInstance(Fixture):
 
     def _create_cmd(self, cmd, copyfile):
         """Peform variable substition for cmd.
-        
+
         :param cmd: The string command to run.
         :param copyfile: None or a file to copy.
         """
@@ -258,6 +260,83 @@ class RunInInstance(Fixture):
         run_proc = self._ui.subprocess_Popen(cmd, shell=True,
             stdout=subprocess.PIPE, stdin=subprocess.PIPE)
         return run_proc
+
+
+class RunTestProcess(Fixture):
+    """Run a single test backend.
+
+    :attr run_proc: The process.
+    """
+
+    def __init__(self, ui, instance_source, config, listpath, template, test_ids, idoption):
+        """Create a RunInInstance.
+
+        :param ui: The ui object to provide user feedback and perform Popen.
+        :param instance_source: An instance source.
+        :param config: The ConfigParser configuration.
+        :param listpath: None or a fixed path to use for copying test id
+            lists into the instance.
+        :param template: The command template to run.
+        :param test_ids: The test IDs to run.
+            None means run whatever the backend has.
+            An interable means run that iterable.
+        :param idoption: Option for indicating specific tests are to be run.
+        """
+        super(RunTestProcess, self).__init__()
+        self._ui = ui
+        self._instance_source = instance_source
+        self._parser = config
+        self._listpath = listpath
+        self._template = template
+        self._test_ids = test_ids
+        self._idoption = idoption
+
+    def _setUp(self):
+        runner = self.useFixture(
+            RunInInstance(self._ui, self._instance_source, self._parser))
+        variables = {}
+        def subst(match):
+            return variables.get(match.groups(1)[0], '')
+        if self._test_ids is None:
+            # No test ids to supply to the program.
+            list_file_name = None
+            idlist = ''
+            # No test ids, no id option.
+            idoption = ''
+        else:
+            list_file_name = self._make_listfile()
+            variables['IDFILE'] = list_file_name
+            idlist = ' '.join(self._test_ids)
+            idoption = re.sub(run_regex, subst, self._idoption)
+            variables['IDOPTION'] = idoption
+        variables['IDLIST'] = idlist
+        cmd = re.sub(run_regex, subst, self._template)
+        run_proc = runner.spawn(cmd, list_file_name)
+        # Prevent processes stalling if they read from stdin; we could
+        # pass this through in future, but there is no point doing that
+        # until we have a working can-run-debugger-inline story.
+        run_proc.stdin.close()
+        self.run_proc = CallWhenProcFinishes(run_proc, self.cleanUp)
+
+    def _make_listfile(self):
+        name = None
+        try:
+            if self._listpath:
+                name = self._listpath
+                stream = open(name, 'wb')
+            else:
+                fd, name = tempfile.mkstemp()
+                stream = os.fdopen(fd, 'wb')
+            self.list_file_name = name
+            write_list(stream, self._test_ids)
+            stream.close()
+        except:
+            if name:
+                os.unlink(name)
+            raise
+        self.addCleanup(os.unlink, name)
+        self.addCleanup(delattr, self, 'list_file_name')
+        return name
 
 
 class TestListingFixture(Fixture):
@@ -322,8 +401,7 @@ class TestListingFixture(Fixture):
 
     def setUp(self):
         super(TestListingFixture, self).setUp()
-        variable_regex = '\$(IDOPTION|IDFILE|IDLIST|LISTOPT)'
-        variables = {}
+        # -- list_cmd: depends on parser.
         list_variables = {'LISTOPT': self.listopt}
         cmd = self.template
         try:
@@ -337,7 +415,9 @@ class TestListingFixture(Fixture):
             default_idstr = None
         def list_subst(match):
             return list_variables.get(match.groups(1)[0], '')
-        self.list_cmd = re.sub(variable_regex, list_subst, cmd)
+        self.list_cmd = re.sub(run_regex, list_subst, cmd)
+        # -- END list_cmd
+        # test id calculations
         if self.test_ids is None:
             if self.concurrency == 1:
                 if default_idstr:
@@ -346,26 +426,8 @@ class TestListingFixture(Fixture):
                 # Have to be able to tell each worker what to run / filter
                 # tests.
                 self.test_ids = self.list_tests()
-        if self.test_ids is None:
-            # No test ids to supply to the program.
-            self.list_file_name = None
-            name = ''
-            idlist = ''
-        else:
+        if self.test_ids is not None:
             self.test_ids = self.filter_tests(self.test_ids)
-            name = self._make_listfile()
-            variables['IDFILE'] = name
-            idlist = ' '.join(self.test_ids)
-        variables['IDLIST'] = idlist
-        def subst(match):
-            return variables.get(match.groups(1)[0], '')
-        if self.test_ids is None:
-            # No test ids, no id option.
-            idoption = ''
-        else:
-            idoption = re.sub(variable_regex, subst, self.idoption)
-            variables['IDOPTION'] = idoption
-        self.cmd = re.sub(variable_regex, subst, cmd)
 
     def _make_listfile(self):
         name = None
@@ -388,7 +450,7 @@ class TestListingFixture(Fixture):
 
     def filter_tests(self, test_ids):
         """Filter test_ids by the test_filters.
-        
+
         :return: A list of test ids.
         """
         if self.test_filters is None:
@@ -430,7 +492,7 @@ class TestListingFixture(Fixture):
 
     def _per_instance_command(self, cmd, runner):
         """Customise cmd to with an instance-id.
-        
+
         :param concurrency: The number of instances to ask for (used to avoid
             death-by-1000 cuts of latency.
         """
@@ -447,29 +509,21 @@ class TestListingFixture(Fixture):
         if self.concurrency == 1 and (test_ids is None or test_ids):
             # Have to customise cmd here, as instances are allocated
             # just-in-time. XXX: Indicates this whole region needs refactoring.
-            runner = RunInInstance(self.ui, self._instance_source, self._parser)
-            try:
-                runner.setUp()
-                run_proc = runner.spawn(self.cmd, getattr(self, 'list_file_name', None))
-                # Prevent processes stalling if they read from stdin; we could
-                # pass this through in future, but there is no point doing that
-                # until we have a working can-run-debugger-inline story.
-                run_proc.stdin.close()
-                return [CallWhenProcFinishes(run_proc, runner.cleanUp)]
-            except:
-                runner.cleanUp()
-                raise
+            run = RunTestProcess(
+                self.ui, self._instance_source, self._parser, self._listpath,
+                self.template, test_ids, self.idoption)
+            run.setUp()
+            return [run]
         test_id_groups = self.partition_tests(test_ids, self.concurrency)
         for test_ids in test_id_groups:
             if not test_ids:
                 # No tests in this partition
                 continue
-            fixture = self.useFixture(TestListingFixture(test_ids,
-                self.template, self.listopt, self.idoption, self.ui,
-                self.repository, parallel=False, parser=self._parser,
-                instance_source=self._instance_source,
-                concurrency=1))
-            result.extend(fixture.run_tests())
+            run = RunTestProcess(
+                self.ui, self._instance_source, self._parser, self._listpath,
+                self.template, test_ids, self.idoption)
+            run.setUp()
+            result.append(run)
         return result
 
     def partition_tests(self, test_ids, concurrency):
@@ -477,7 +531,7 @@ class TestListingFixture(Fixture):
 
         Test durations from the repository are used to get partitions which
         have roughly the same expected runtime. New tests - those with no
-        recorded duration - are allocated in round-robin fashion to the 
+        recorded duration - are allocated in round-robin fashion to the
         partitions created using test durations.
 
         :return: A list where each element is a distinct subset of test_ids,
@@ -532,7 +586,7 @@ class TestListingFixture(Fixture):
         consume_queue(timed)
         consume_queue(partial)
         # Assign groups with entirely unknown times in round robin fashion to
-        # the partitions. 
+        # the partitions.
         for partition, group_id in zip(itertools.cycle(partitions), unknown):
             partition.extend(group_ids[group_id])
         return partitions
@@ -540,7 +594,7 @@ class TestListingFixture(Fixture):
 
 class TestCommand(Fixture):
     """Represents the test command defined in .testr.conf.
-    
+
     :ivar run_factory: The fixture to use to execute a command.
     :ivar oldschool: Use failing.list rather than a unique file path.
 
@@ -550,7 +604,7 @@ class TestCommand(Fixture):
     happens. This is not done per-run-command, because test bisection (amongst
     other things) uses multiple get_run_command configurations.
     """
-    
+
     run_factory = TestListingFixture
     oldschool = False
 
@@ -620,7 +674,7 @@ class TestCommand(Fixture):
 
     def get_run_command(self, test_ids=None, testargs=(), test_filters=None):
         """Get the command that would be run to run tests.
-        
+
         See TestListingFixture for the definition of test_ids and test_filters.
         """
         if self._instance_cache is None:
@@ -686,7 +740,7 @@ class TestCommand(Fixture):
 
     def obtain_instance(self):
         """If possible, get one or more test run environment instance ids.
-        
+
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """

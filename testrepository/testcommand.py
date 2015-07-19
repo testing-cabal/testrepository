@@ -21,6 +21,7 @@ from extras import (
 
 from collections import defaultdict
 ConfigParser = try_imports(['ConfigParser', 'configparser'])
+from functools import partial
 import io
 import itertools
 import operator
@@ -606,15 +607,13 @@ class TestCommand(Fixture):
             group_callback = None
         if self.oldschool:
             listpath = os.path.join(self.ui.here, 'failing.list')
-            result = self.run_factory(test_ids, cmd, listopt, idoption,
-                self.ui, self.repository, listpath=listpath, parser=parser,
-                test_filters=test_filters, instance_source=self,
-                group_callback=group_callback)
+            run_factory = partial(self.run_factory, listpath=listpath)
         else:
-            result = self.run_factory(test_ids, cmd, listopt, idoption,
-                self.ui, self.repository, parser=parser,
-                test_filters=test_filters, instance_source=self,
-                group_callback=group_callback)
+            run_factory = self.run_factory
+        result = run_factory(test_ids, cmd, listopt, idoption,
+            self.ui, self.repository, parser=parser,
+            test_filters=test_filters, instance_source=self,
+            group_callback=group_callback)
         return result
 
     def get_filter_tags(self):

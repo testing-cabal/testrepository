@@ -229,6 +229,7 @@ class TestListingFixture(Fixture):
         self._parser = parser
         self.test_filters = test_filters
         self._group_callback = group_callback
+        assert instance_source is not None
         self._instance_source = instance_source
         assert concurrency is not None
         self.concurrency = concurrency
@@ -349,8 +350,6 @@ class TestListingFixture(Fixture):
         :param concurrency: The number of instances to ask for (used to avoid
             death-by-1000 cuts of latency.
         """
-        if self._instance_source is None:
-            return None, cmd
         instance = self._instance_source.obtain_instance()
         if instance is not None:
             try:

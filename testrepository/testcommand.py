@@ -633,6 +633,7 @@ class TestCommand(Fixture):
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """
+        profile = u"DEFAULT"
         while self._instance_cache.size() < concurrency:
             try:
                 cmd = self.get_parser().get('DEFAULT', 'instance_provision')
@@ -650,11 +651,10 @@ class TestCommand(Fixture):
                 raise ValueError('Provisioning instances failed, return %d' %
                     proc.returncode)
             out = out.decode('utf-8')
-            profile = u"DEFAULT"
             new_instances = set([Instance(profile, item.strip()) for item in out.split()])
             list(map(self._instance_cache.add, new_instances))
         # We only ask for instances when one should be available.
-        return self._instance_cache.allocate()
+        return self._instance_cache.allocate(profile)
 
     def release_instance(self, instance):
         """Return instance_ids to the pool for reuse."""

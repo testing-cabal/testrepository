@@ -50,10 +50,10 @@ class TestCache(ResourcedTestCase):
         cache.add(instance)
         # Can't remove unallocated instances.
         self.assertRaises(KeyError, cache.remove, instance)
-        self.assertIs(instance, cache.allocate())
+        self.assertIs(instance, cache.allocate('profile'))
         cache.release(instance)
         self.assertEqual(1, cache.size())
-        self.assertIs(instance, cache.allocate())
+        self.assertIs(instance, cache.allocate('profile'))
         self.assertEqual(1, cache.size())
         cache.remove(instance)
         self.assertEqual(0, cache.size())
@@ -61,12 +61,38 @@ class TestCache(ResourcedTestCase):
 
     def test_all(self):
         cache = Cache()
-        instance1 = Instance('profile', '1')
-        instance2 = Instance('profile', '2')
+        instance1 = Instance('p1', '1')
+        instance2 = Instance('p2', '2')
+        instance3 = Instance('p1', '3')
+        instance4 = Instance('p2', '4')
         cache.add(instance1)
         cache.add(instance2)
-        cache.allocate()
-        self.assertEqual(2, cache.size())
+        cache.add(instance3)
+        cache.add(instance4)
+        cache.allocate('p1')
+        cache.allocate('p2')
+        self.assertEqual(
+            frozenset([instance1, instance2, instance3, instance4]),
+            cache.all())
 
-    def test_allocat_empty(self):
-        self.assertRaises(KeyError, Cache().allocate)
+    def test_size(self):
+        cache = Cache()
+        instance1 = Instance('p1', '1')
+        instance2 = Instance('p2', '2')
+        instance3 = Instance('p1', '3')
+        instance4 = Instance('p2', '4')
+        cache.add(instance1)
+        cache.add(instance2)
+        cache.add(instance3)
+        cache.add(instance4)
+        cache.allocate('p1')
+        cache.allocate('p2')
+        self.assertEqual(4, cache.size())
+
+    def test_allocate_empty(self):
+        self.assertRaises(KeyError, Cache().allocate, 'p1')
+
+    def test_allocate_profile_empty(self):
+        c = Cache()
+        c.add(Instance('p1', '1'))
+        self.assertRaises(KeyError, c.allocate, 'p2')

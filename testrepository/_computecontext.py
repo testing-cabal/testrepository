@@ -16,7 +16,8 @@
 
 __all__ = ['Cache', 'Instance']
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
+from itertools import chain
 
 import six
 
@@ -34,24 +35,29 @@ class Cache:
 
     def __init__(self):
         self._allocated = set()
-        self._available = set()
+        self._available = defaultdict(set)
 
     def add(self, instance):
         """Add an instance to the cache."""
-        self._available.add(instance)
+        self._available[instance.profile].add(instance)
 
-    def allocate(self):
+    def allocate(self, profile):
         """Allocate an instance from available to allocated.
         
+        :param profile: The profile to allocate for.
         :return: An Instance.
         """
-        instance = self._available.pop()
+        instance = self._available[profile].pop()
         self._allocated.add(instance)
         return instance
 
     def all(self):
         """Return an iterable of all instances."""
-        return frozenset(self._allocated.union(self._available))
+        instances = set()
+        return frozenset(reduce(
+            lambda l, r: l.union(r),
+                chain(self._available.values(), [self._allocated]),
+                set()))
 
     def release(self, instance):
         """Return instance to the available pool.
@@ -59,7 +65,7 @@ class Cache:
         :param instance: An allocated instance.
         """
         self._allocated.remove(instance)
-        self._available.add(instance)
+        self._available[instance.profile].add(instance)
 
     def remove(self, instance):
         """Remove instance from the cache.
@@ -73,4 +79,7 @@ class Cache:
 
         This is the sum of the number of available and allocated instances.
         """
-        return len(self._allocated) + len(self._available)
+        return reduce(
+            lambda acc, s: acc+len(s),
+            chain(self._available.values(), [self._allocated]),
+            0)

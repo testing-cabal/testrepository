@@ -205,20 +205,22 @@ class RunInInstance(Fixture):
      - managing the instance lifecycle
     """
 
-    def __init__(self, ui, instance_source, config):
+    def __init__(self, ui, instance_source, config, profile):
         """Create a RunInInstance.
 
         :param ui: The ui object to provide user feedback and perform Popen.
         :param instance_source: An instance source.
         :param config: The ConfigParser configuration.
+        :param profile: The profile to run in.
         """
         super(RunInInstance, self).__init__()
         self._ui = ui
         self._instance_source = instance_source
         self._parser = config
+        self._profile = profile
 
     def _setUp(self):
-        self._instance = self._instance_source.obtain_instance()
+        self._instance = self._instance_source.obtain_instance(self._profile)
         if self._instance is not None:
             self.addCleanup(
                 self._instance_source.release_instance, self._instance)
@@ -293,7 +295,7 @@ class RunTestProcess(Fixture):
 
     def _setUp(self):
         runner = self.useFixture(
-            RunInInstance(self._ui, self._instance_source, self._parser))
+            RunInInstance(self._ui, self._instance_source, self._parser, u'DEFAULT'))
         variables = {}
         def subst(match):
             return variables.get(match.groups(1)[0], '')
@@ -472,7 +474,8 @@ class TestListingFixture(Fixture):
         """
         if '$LISTOPT' not in self.template:
             raise ValueError("LISTOPT not configured in .testr.conf")
-        with RunInInstance(self.ui, self._instance_source, self._parser) as runner:
+        with RunInInstance(
+            self.ui, self._instance_source, self._parser, u'DEFAULT') as runner:
             run_proc = runner.spawn(
                 self.list_cmd, getattr(self, 'list_file_name', None))
             out, err = run_proc.communicate()
@@ -738,13 +741,12 @@ class TestCommand(Fixture):
             return set()
         return set([tag.strip() for tag in tags.split()])
 
-    def obtain_instance(self):
+    def obtain_instance(self, profile):
         """If possible, get one or more test run environment instance ids.
 
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """
-        profile = u"DEFAULT"
         while self._instance_cache.size() < self.concurrency:
             try:
                 cmd = self.get_parser().get('DEFAULT', 'instance_provision')

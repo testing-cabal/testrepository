@@ -88,7 +88,7 @@ class TestCommand(ResourcedTestCase):
         self.assertEqual(1, len(ui.outputs))
         self.assertEqual('error', ui.outputs[0][0])
         self.assertThat(ui.outputs[0][1],
-            MatchesException(ValueError('No .testr.conf config file')))
+            MatchesException(ValueError('No testr config file')))
 
     def test_no_config_settings_errors(self):
         ui, cmd = self.get_test_ui_and_cmd()
@@ -98,7 +98,7 @@ class TestCommand(ResourcedTestCase):
         self.assertEqual(1, len(ui.outputs))
         self.assertEqual('error', ui.outputs[0][0])
         self.assertThat(ui.outputs[0][1], MatchesException(ValueError(
-            'No test_command option present in .testr.conf')))
+            'No test_command option present in the testr config file')))
 
     def test_IDFILE_failures(self):
         ui, cmd = self.get_test_ui_and_cmd(options=[('failing', True)])

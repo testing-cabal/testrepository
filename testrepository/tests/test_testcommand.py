@@ -130,14 +130,14 @@ class TestTestCommand(ResourcedTestCase):
     def test_get_run_command_no_config_file_errors(self):
         ui, command = self.get_test_ui_and_cmd()
         self.assertThat(command.get_run_command,
-            raises(ValueError('No .testr.conf config file')))
+            raises(ValueError('No testr config file')))
 
     def test_get_run_command_no_config_settings_errors(self):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config('')
         self.assertThat(command.get_run_command,
             raises(ValueError(
-            'No test_command option present in .testr.conf')))
+            'No test_command option present in the testr config file')))
 
     def test_get_run_command_returns_fixture_makes_IDFILE(self):
         ui, command = self.get_test_ui_and_cmd()

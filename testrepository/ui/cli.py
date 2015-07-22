@@ -269,6 +269,12 @@ class UI(ui.AbstractUI):
             help="Set the directory or url that a command should run from. "
             "This affects all default path lookups but does not affect paths "
             "supplied to the command.", default=os.getcwd(), type=str)
+        parser.add_option("--config", dest="config_path", default=None,
+                          metavar="path",
+                          help="Set a testr config file to use with this "
+                               "command. If one isn't specified then "
+                               ".testr.conf in the directory that a command "
+                               "is running from is used")
         parser.add_option("-q", "--quiet", action="store_true", default=False,
             help="Turn off output other than the primary output for a command "
             "and any errors.")
@@ -288,6 +294,7 @@ class UI(ui.AbstractUI):
         options, args = parser.parse_args(opt_argv)
         args += other_args
         self.here = options.here
+        self.config_path = options.config_path
         self.options = options
         parsed_args = {}
         failed = False

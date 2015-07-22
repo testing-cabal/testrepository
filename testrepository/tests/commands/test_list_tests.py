@@ -70,7 +70,7 @@ class TestCommand(ResourcedTestCase):
         self.assertEqual(1, len(ui.outputs))
         self.assertEqual('error', ui.outputs[0][0])
         self.assertThat(ui.outputs[0][1],
-            MatchesException(ValueError('No .testr.conf config file')))
+            MatchesException(ValueError('No testr config file')))
 
     def test_calls_list_tests(self):
         ui, cmd = self.get_test_ui_and_cmd(args=('--', 'bar', 'quux'))

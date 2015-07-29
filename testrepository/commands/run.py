@@ -146,6 +146,10 @@ class run(Command):
         optparse.Option("--isolated", action="store_true",
             default=False,
             help="Run each test id in a separate test runner."),
+        optparse.Option("--worker-file", action="store", type="str",
+                        default=None,
+                        help="Optional path of a manual worker grouping file "
+                             "to use for the run"),
         ]
     args = [StringArgument('testfilters', 0, None), DoubledashArgument(),
         StringArgument('testargs', 0, None)]
@@ -194,7 +198,8 @@ class run(Command):
         try:
             if not self.ui.options.analyze_isolation:
                 cmd = testcommand.get_run_command(ids, self.ui.arguments['testargs'],
-                    test_filters = filters)
+                    test_filters = filters,
+                    worker_path=self.ui.options.worker_file)
                 if self.ui.options.isolated:
                     result = 0
                     cmd.setUp()

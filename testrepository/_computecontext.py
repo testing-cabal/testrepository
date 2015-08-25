@@ -34,7 +34,7 @@ class Cache:
     """A cache of instances."""
 
     def __init__(self):
-        self._allocated = set()
+        self._allocated = defaultdict(set)
         self._available = defaultdict(set)
 
     def add(self, instance):
@@ -48,7 +48,7 @@ class Cache:
         :return: An Instance.
         """
         instance = self._available[profile].pop()
-        self._allocated.add(instance)
+        self._allocated[profile].add(instance)
         return instance
 
     def all(self):
@@ -56,15 +56,15 @@ class Cache:
         instances = set()
         return frozenset(reduce(
             lambda l, r: l.union(r),
-                chain(self._available.values(), [self._allocated]),
-                set()))
+            chain(self._available.values(), self._allocated.values()),
+            set()))
 
     def release(self, instance):
         """Return instance to the available pool.
         
         :param instance: An allocated instance.
         """
-        self._allocated.remove(instance)
+        self._allocated[instance.profile].remove(instance)
         self._available[instance.profile].add(instance)
 
     def remove(self, instance):
@@ -72,14 +72,11 @@ class Cache:
         
         :param instance: An allocated instance.
         """
-        self._allocated.remove(instance)
+        self._allocated[instance.profile].remove(instance)
 
-    def size(self):
+    def size(self, instance):
         """Return the number of instances in the cache.
 
         This is the sum of the number of available and allocated instances.
         """
-        return reduce(
-            lambda acc, s: acc+len(s),
-            chain(self._available.values(), [self._allocated]),
-            0)
+        return len(self._available[instance]) + len(self._allocated[instance])

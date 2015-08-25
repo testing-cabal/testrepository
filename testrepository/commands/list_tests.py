@@ -22,7 +22,8 @@ from testtools.compat import _b
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
 from testrepository.commands import Command
-from testrepository.testcommand import testrconf_help, TestCommand
+from testrepository.testcommand import (
+    strip_namespace, testrconf_help, TestCommand)
 
 
 class list_tests(Command):
@@ -46,12 +47,13 @@ class list_tests(Command):
                 ids, self.ui.arguments['testargs'], test_filters=filters)
             cmd.setUp()
             try:
-                # Ugh.
+                # Ugh - poor layering. To Fix.
                 # List tests if the fixture has not already needed to to filter.
                 if filters is None:
-                    ids = cmd.list_tests()
+                    ids = cmd.list_tests(testcommand.default_profiles)
                 else:
                     ids = cmd.test_ids
+                ids = strip_namespace(ids)
                 stream = BytesIO()
                 for id in ids:
                     stream.write(('%s\n' % id).encode('utf8'))

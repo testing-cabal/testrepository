@@ -33,7 +33,11 @@ from testrepository.arguments.string import StringArgument
 from testrepository.commands import Command
 from testrepository.commands.load import load
 from testrepository.ui import decorator
-from testrepository.testcommand import TestCommand, testrconf_help
+from testrepository.testcommand import (
+    apply_profiles,
+    TestCommand,
+    testrconf_help,
+    )
 from testrepository.testlist import parse_list
 
 
@@ -173,18 +177,6 @@ class run(Command):
             ids = self._find_failing(repo)
         else:
             ids = None
-        if self.ui.options.load_list:
-            list_ids = set()
-            # Should perhaps be text.. currently does its own decode.
-            with open(self.ui.options.load_list, 'rb') as list_file:
-                list_ids = set(parse_list(list_file.read()))
-            if ids is None:
-                # Use the supplied list verbatim
-                ids = list_ids
-            else:
-                # We have some already limited set of ids, just reduce to ids
-                # that are both failing and listed.
-                ids = list_ids.intersection(ids)
         if self.ui.arguments['testfilters']:
             filters = self.ui.arguments['testfilters']
         else:
@@ -192,6 +184,20 @@ class run(Command):
         testcommand = self.command_factory(self.ui, repo)
         testcommand.setUp()
         try:
+            if self.ui.options.load_list:
+                list_ids = set()
+                # Should perhaps be text.. currently does its own decode.
+                with open(self.ui.options.load_list, 'rb') as list_file:
+                    list_ids = set(parse_list(list_file.read()))
+                list_ids = apply_profiles(
+                    testcommand.default_profiles, list_ids)
+                if ids is None:
+                    # Use the supplied list verbatim
+                    ids = list_ids
+                else:
+                    # We have some already limited set of ids, just reduce to ids
+                    # that are both failing and listed.
+                    ids = list_ids.intersection(ids)
             if not self.ui.options.analyze_isolation:
                 cmd = testcommand.get_run_command(ids, self.ui.arguments['testargs'],
                     test_filters = filters)

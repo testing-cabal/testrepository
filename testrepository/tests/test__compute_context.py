@@ -52,11 +52,11 @@ class TestCache(ResourcedTestCase):
         self.assertRaises(KeyError, cache.remove, instance)
         self.assertIs(instance, cache.allocate('profile'))
         cache.release(instance)
-        self.assertEqual(1, cache.size())
+        self.assertEqual(1, cache.size('profile'))
         self.assertIs(instance, cache.allocate('profile'))
-        self.assertEqual(1, cache.size())
+        self.assertEqual(1, cache.size('profile'))
         cache.remove(instance)
-        self.assertEqual(0, cache.size())
+        self.assertEqual(0, cache.size('profile'))
         self.assertRaises(KeyError, cache.remove, instance)
 
     def test_all(self):
@@ -87,7 +87,8 @@ class TestCache(ResourcedTestCase):
         cache.add(instance4)
         cache.allocate('p1')
         cache.allocate('p2')
-        self.assertEqual(4, cache.size())
+        self.assertEqual(2, cache.size('p1'))
+        self.assertEqual(2, cache.size('p2'))
 
     def test_allocate_empty(self):
         self.assertRaises(KeyError, Cache().allocate, 'p1')

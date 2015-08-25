@@ -141,6 +141,29 @@ class CallWhenProcFinishes(object):
         return self.returncode
 
 
+def apply_profiles(profiles, test_ids):
+    """Put each test id in test_ids into all of profiles."""
+    result = set()
+    profiles = set(profiles)
+    for test_id in test_ids:
+        segments = test_id.rsplit('/', 1)
+        if len(segments) > 1 and segments[0] in profiles:
+            # already namespaced.
+            result.add(test_id)
+        else:
+            for profile in profiles:
+                result.add("%s/%s" % (profile, test_id))
+    return result
+
+
+def strip_namespace(test_ids):
+    """Strip the namespace from each test in test_ids."""
+    result = []
+    for test_id in test_ids:
+        result.append(test_id[test_id.find('/')+1:])
+    return result
+
+
 def _callout(key, parser, ui):
     """Make a callout."""
     try:
@@ -154,7 +177,7 @@ def _callout(key, parser, ui):
         raise ValueError(
             "%s failed: exit code %d, stderr='%s'" % (
             key, run_proc.returncode, err.decode('utf8', 'replace')))
-    return out
+    return out.decode('utf-8')
 
 
 def _callout_concurrency(parser, ui):
@@ -166,11 +189,14 @@ def _callout_concurrency(parser, ui):
 
 
 def _default_profiles(parser, ui):
-    """Callout to determine profiles to use by default."""
+    """Callout to determine profiles to use by default.
+
+    Returns a list for deterministic testing.
+    """
     out = _callout('default_profiles', parser, ui)
     if out is None:
-        return set()
-    return set([s for s in out.split() if s])
+        return []
+    return [s for s in out.split() if s]
 
 
 def _list_profiles(parser, ui):
@@ -267,10 +293,12 @@ class RunInInstance(Fixture):
 class RunTestProcess(Fixture):
     """Run a single test backend.
 
-    :attr run_proc: The process.
+    :ivar run_proc: The process.
     """
 
-    def __init__(self, ui, instance_source, config, listpath, template, test_ids, idoption):
+    def __init__(
+            self, ui, instance_source, config, listpath, template, test_ids,
+            idoption, profile):
         """Create a RunInInstance.
 
         :param ui: The ui object to provide user feedback and perform Popen.
@@ -283,6 +311,7 @@ class RunTestProcess(Fixture):
             None means run whatever the backend has.
             An interable means run that iterable.
         :param idoption: Option for indicating specific tests are to be run.
+        :param profile: The profile to run within.
         """
         super(RunTestProcess, self).__init__()
         self._ui = ui
@@ -292,10 +321,11 @@ class RunTestProcess(Fixture):
         self._template = template
         self._test_ids = test_ids
         self._idoption = idoption
+        self._profile = profile
 
     def _setUp(self):
         runner = self.useFixture(
-            RunInInstance(self._ui, self._instance_source, self._parser, u'DEFAULT'))
+            RunInInstance(self._ui, self._instance_source, self._parser, self._profile))
         variables = {}
         def subst(match):
             return variables.get(match.groups(1)[0], '')
@@ -342,7 +372,10 @@ class RunTestProcess(Fixture):
 
 
 class TestListingFixture(Fixture):
-    """Write a temporary file to disk with test ids in it."""
+    """Write a temporary file to disk with test ids in it.
+
+    XXX: Being deprecated/removed.
+    """
 
     def __init__(self, test_ids, cmd_template, listopt, idoption, ui,
         repository, parallel=True, listpath=None, parser=None,
@@ -355,7 +388,9 @@ class TestListingFixture(Fixture):
             configuration if they must be known to run tests. Test ids are
             needed to run tests when filtering or partitioning is needed: if
             the run concurrency is > 1 partitioning is needed, and filtering is
-            needed if the user has passed in filters.
+            needed if the user has passed in filters. test_ids must be
+            namespaced by profile. E.g. 'test_foo' in the default profile would
+            be 'DEFAULT/test_foo'.
         :param cmd_template: string to be filled out with
             IDFILE.
         :param listopt: Option to substitute into LISTOPT to cause test listing
@@ -385,6 +420,11 @@ class TestListingFixture(Fixture):
             used as a dictionary key in the scheduler. All test ids with the
             same group id are scheduled onto the same backend test process.
         """
+        if test_ids is not None:
+            test_ids = list(test_ids)
+            for test_id in test_ids:
+                if '/' not in test_id:
+                    raise Exception("Bad test id %r" % (test_id,))
         self.test_ids = test_ids
         self.template = cmd_template
         self.listopt = listopt
@@ -423,11 +463,13 @@ class TestListingFixture(Fixture):
         if self.test_ids is None:
             if self.concurrency == 1:
                 if default_idstr:
-                    self.test_ids = default_idstr.split()
+                    self.test_ids = apply_profiles(
+                        self._instance_source.default_profiles,
+                        default_idstr.split())
             if self.concurrency != 1 or self.test_filters is not None:
                 # Have to be able to tell each worker what to run / filter
                 # tests.
-                self.test_ids = self.list_tests()
+                self.test_ids = self.list_tests(self._instance_source.default_profiles)
         if self.test_ids is not None:
             self.test_ids = self.filter_tests(self.test_ids)
 
@@ -467,15 +509,29 @@ class TestListingFixture(Fixture):
     # XXX Entry point for list_tests command.
     #     Use cases: - all tests across all profiles [testr list-tests], testr run --isolated
     #                - tests for one profile for scheduling?
-    def list_tests(self):
-        """List the tests returned by list_cmd.
+    def list_tests(self, profiles):
+        """List the tests returned by list_cmd in profiles.
 
+        :param profiles: The profiles to query.
         :return: A list of test ids.
         """
         if '$LISTOPT' not in self.template:
             raise ValueError("LISTOPT not configured in .testr.conf")
+        result = []
+        for profile in profiles:
+            ids = self._list_tests(profile)
+            for test_id in ids:
+                result.append(u'%s/%s' % (profile, test_id))
+        return result
+
+    def _list_tests(self, profile):
+        """List tests in one profile.
+
+        :param profile: The profile to list in.
+        :return: A list of the un-namedspaced test ids from profile.
+        """
         with RunInInstance(
-            self.ui, self._instance_source, self._parser, u'DEFAULT') as runner:
+            self.ui, self._instance_source, self._parser, profile) as runner:
             run_proc = runner.spawn(
                 self.list_cmd, getattr(self, 'list_file_name', None))
             out, err = run_proc.communicate()
@@ -508,13 +564,26 @@ class TestListingFixture(Fixture):
         :return: A list of spawned processes.
         """
         result = []
-        test_ids = self.test_ids
+        for profile in self._instance_source.default_profiles:
+            if self.test_ids is not None:
+                prefix = "%s/" % profile
+                profile_tests = strip_namespace(
+                    [test_id for test_id in self.test_ids
+                     if test_id.startswith(prefix)])
+            else:
+                profile_tests = None
+            result.extend(self._run_tests(profile, profile_tests))
+        return result
+
+    def _run_tests(self, profile, test_ids):
+        """Internal per-profile helper for run_tests."""
+        result = []
         if self.concurrency == 1 and (test_ids is None or test_ids):
             # Have to customise cmd here, as instances are allocated
             # just-in-time. XXX: Indicates this whole region needs refactoring.
             run = RunTestProcess(
                 self.ui, self._instance_source, self._parser, self._listpath,
-                self.template, test_ids, self.idoption)
+                self.template, test_ids, self.idoption, profile)
             run.setUp()
             return [run]
         test_id_groups = self.partition_tests(test_ids, self.concurrency)
@@ -524,7 +593,7 @@ class TestListingFixture(Fixture):
                 continue
             run = RunTestProcess(
                 self.ui, self._instance_source, self._parser, self._listpath,
-                self.template, test_ids, self.idoption)
+                self.template, test_ids, self.idoption, profile)
             run.setUp()
             result.append(run)
         return result
@@ -600,6 +669,8 @@ class TestCommand(Fixture):
 
     :ivar run_factory: The fixture to use to execute a command.
     :ivar oldschool: Use failing.list rather than a unique file path.
+    :ivar profiles: The available profiles.
+    :ivar default_profiles: The default profiles to use.
 
     TestCommand is a Fixture. Many uses of it will not require it to be setUp,
     but calling get_run_command does require it: the fixture state is used to
@@ -641,6 +712,14 @@ class TestCommand(Fixture):
                 self.concurrency = local_concurrency()
             if not self.concurrency:
                 self.concurrency = 1
+        self.profiles = _list_profiles(self.get_parser(), self.ui)
+        self.default_profiles = _default_profiles(self.get_parser(), self.ui)
+        if not self.profiles:
+            # Default configuration
+            self.profiles = set([u'DEFAULT'])
+        if not self.default_profiles:
+            # Default configuration
+            self.default_profiles = set(self.profiles)
 
     def _dispose_instances(self):
         cache = self._instance_cache
@@ -667,12 +746,15 @@ class TestCommand(Fixture):
 
     def get_parser(self):
         """Get a parser with the .testr.conf in it."""
+        if getattr(self, '_parser', None):
+            return self._parser
         parser = ConfigParser.ConfigParser()
         # This possibly should push down into UI.
         if self.ui.here == 'memory:':
             return parser
         if not parser.read(os.path.join(self.ui.here, '.testr.conf')):
             raise ValueError("No .testr.conf config file")
+        self._parser = parser
         return parser
 
     def get_run_command(self, test_ids=None, testargs=(), test_filters=None):
@@ -747,7 +829,7 @@ class TestCommand(Fixture):
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """
-        while self._instance_cache.size() < self.concurrency:
+        while self._instance_cache.size(profile) < self.concurrency:
             try:
                 cmd = self.get_parser().get('DEFAULT', 'instance_provision')
             except ConfigParser.NoOptionError:
@@ -755,7 +837,7 @@ class TestCommand(Fixture):
                 return None
             variable_regex = '\$INSTANCE_COUNT'
             cmd = re.sub(variable_regex,
-                str(self.concurrency - self._instance_cache.size()), cmd)
+                str(self.concurrency - self._instance_cache.size(profile)), cmd)
             self.ui.output_values([('running', cmd)])
             proc = self.ui.subprocess_Popen(
                 cmd, shell=True, stdout=subprocess.PIPE)

@@ -11,7 +11,7 @@ Needs a locally edited .testr.conf
  test_list_option=--list
  ;filter_tags=worker-0
 +list_profiles=echo 2.6 2.7 3.2 3.3 3.4 3.5 cpython pypy pypy3
-+instance_provision=tools/start-container $INSTANCE_PROFILE $INSTANCE_COUNT
++instance_provision=tools/start-container $PROFILE $INSTANCE_COUNT
 +;instance_dispose=
-+instance_execute=tools/run-container $INSTANCE_PROFILE $INSTANCE_ID $FILES -- $COMMAND
++instance_execute=tools/run-container $PROFILE $INSTANCE_ID $FILES -- $COMMAND
 ```

@@ -20,11 +20,12 @@ from io import BytesIO
 import os.path
 import optparse
 import re
+from textwrap import dedent
 
 from extras import try_import
 import subunit
 v2_avail = try_import('subunit.ByteStreamToStreamResult')
-from testtools.compat import _b
+from testtools.compat import _b, _u
 from testtools.matchers import (
     Equals,
     MatchesAny,
@@ -322,7 +323,7 @@ class TestTestCommand(ResourcedTestCase):
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
         command = self.useFixture(TestCommand(ui, None))
         fixture = self.useFixture(command.get_run_command(test_ids=['DEFAULT/1']))
-        fixture.list_tests([u'DEFAULT'])
+        fixture.list_tests([_u('DEFAULT')])
         self.assertEqual(2, command._instance_cache.size('DEFAULT'))
         # Little ugly. We can allocate two, as the list used and released one.
         command._instance_cache.allocate('DEFAULT')
@@ -351,7 +352,7 @@ class TestTestCommand(ResourcedTestCase):
         ui, command = self.get_test_ui_and_cmd()
         fixture = self.useFixture(command.get_run_command())
         command._instance_cache.add(Instance('DEFAULT', 'bar'))
-        fixture.list_tests([u'DEFAULT'])
+        fixture.list_tests([_u('DEFAULT')])
         self.assertEqual(1, command._instance_cache.size('DEFAULT'))
         self.assertEqual(
             Instance('DEFAULT', 'bar'), command._instance_cache.allocate('DEFAULT'))
@@ -388,7 +389,7 @@ class TestTestCommand(ResourcedTestCase):
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
             set(['DEFAULT/returned', 'DEFAULT/ids']),
-            set(fixture.list_tests([u'DEFAULT'])))
+            set(fixture.list_tests([_u('DEFAULT')])))
 
     def test_list_tests_nonzero_exit(self):
         ui, command = self.get_test_ui_and_cmd2()
@@ -398,7 +399,7 @@ class TestTestCommand(ResourcedTestCase):
             'test_list_option=--list\n')
         self.useFixture(command)
         fixture = self.useFixture(command.get_run_command())
-        self.assertThat(lambda:fixture.list_tests([u'DEFAULT']), raises(ValueError))
+        self.assertThat(lambda:fixture.list_tests([_u('DEFAULT')]), raises(ValueError))
 
     def test_list_tests_multiple_profiles(self):
         # testr list-tests is non-parallel, so needs 1 instance per profile.
@@ -422,7 +423,7 @@ class TestTestCommand(ResourcedTestCase):
             'list_profiles=list_profiles\n'
             'default_profiles=default_profiles\n'
             'instance_provision=provision -c $INSTANCE_COUNT\n'
-            'instance_execute=quux $INSTANCE_ID $INSTANCE_PROFILE -- $COMMAND\n')
+            'instance_execute=quux $INSTANCE_ID $PROFILE -- $COMMAND\n')
         command = self.useFixture(TestCommand(ui, None))
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
@@ -439,14 +440,50 @@ class TestTestCommand(ResourcedTestCase):
             ('values', [('running', 'provision -c 2')]),
             ('popen', ('provision -c 2',), {'shell': True, 'stdout': -1}),
             ('communicate',),
-            ('values', [('running', u'quux I1 $INSTANCE_PROFILE -- foo --list ')]),
-            ('popen', (u'quux I1 $INSTANCE_PROFILE -- foo --list ',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('values', [('running', _u('quux I1 P1 -- foo --list '))]),
+            ('popen', (_u('quux I1 P1 -- foo --list '),), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',),
             ('values', [('running', 'provision -c 2')]),
             ('popen', ('provision -c 2',), {'shell': True, 'stdout': -1}),
             ('communicate',),
-            ('values', [('running', u'quux I4 $INSTANCE_PROFILE -- foo --list ')]),
-            ('popen', (u'quux I4 $INSTANCE_PROFILE -- foo --list ',), {'shell': True, 'stdin': -1, 'stdout': -1}), ('communicate',)
+            ('values', [('running', _u('quux I4 P2 -- foo --list '))]),
+            ('popen', (_u('quux I4 P2 -- foo --list '),), {'shell': True, 'stdin': -1, 'stdout': -1}), ('communicate',)
+            ]))
+
+    def test_list_tests_multiple_profiles_no_environments(self):
+        # Without environments, the PROFILE should still be supported
+        # and templated in.
+        subunit_bytes_default = make_test_enumeration('returned', 'ids')
+        subunit_bytes_extra = make_test_enumeration('more', 'ids')
+        self.dirty()
+        ui = UI(options= [])
+        ui.here = self.tempdir
+        cmd = run.run(ui)
+        ui.set_command(cmd)
+        ui.proc_outputs = [
+            b'P1 P2', b'P1 P2', # list profiles, default profiles,
+            subunit_bytes_default, subunit_bytes_extra]
+        self.set_config(
+            '[DEFAULT]\ntest_command=foo $LISTOPT $IDLIST $PROFILE\n'
+            'test_list_option=--list\n'
+            'list_profiles=list_profiles\n'
+            'default_profiles=default_profiles\n')
+        command = self.useFixture(TestCommand(ui, None))
+        fixture = self.useFixture(command.get_run_command())
+        self.assertEqual(
+            set(['P1/returned', 'P1/ids', 'P2/more', 'P2/ids']),
+            set(fixture.list_tests(['P1', 'P2'])))
+        self.assertThat(ui.outputs, Equals([
+            ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('popen', ('default_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', 'foo --list  P1')]),
+            ('popen', ('foo --list  P1',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', 'foo --list  P2')]),
+            ('popen', ('foo --list  P2',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
             ]))
 
     def test_partition_tests_smoke(self):
@@ -554,6 +591,80 @@ class TestTestCommand(ResourcedTestCase):
             ('values', [('running', 'foo ')]),
             ('popen', ('foo ',), {'shell': True, 'stdin': -1, 'stdout': -1})],
             ui.outputs)
+
+    def test_run_tests_with_profiles(self):
+        # when there are profiles and no instance_execute, run_tests runs
+        # profile cmds directly.
+        self.set_config(dedent("""\
+            [DEFAULT]
+            test_command=foo $IDLIST $PROFILE
+            list_profiles=probe
+            """))
+        ui, command = self.get_test_ui_and_cmd2()
+        ui.proc_outputs = [b'P1 P2', b'', b'']
+        self.useFixture(command)
+        fixture = self.useFixture(command.get_run_command(
+            test_ids=['P1/1', 'P2/2']))
+        procs = fixture.run_tests()
+        self.expectThat(ui.outputs, MatchesAny(Equals([
+            ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('foo 2 P2'))]),
+            ('popen', (_u('foo 2 P2'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('values', [('running', _u('foo 1 P1'))]),
+            ('popen', (_u('foo 1 P1'),), {'shell': True, 'stdin': -1, 'stdout': -1})
+            ]), Equals([
+            ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('foo 1 P1'))]),
+            ('popen', (_u('foo 1 P1'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('values', [('running', _u('foo 2 P2'))]),
+            ('popen', (_u('foo 2 P2'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ])))
+
+    def test_run_tests_with_profiles_and_instances(self):
+        # when there are profiles and instance_execute, run_tests runs
+        # profile cmds in instances.
+        self.set_config(dedent("""\
+            [DEFAULT]
+            test_command=foo $IDLIST $PROFILE
+            list_profiles=probe
+            instance_provision=p -c $INSTANCE_COUNT $PROFILE
+            instance_execute=q $INSTANCE_ID -- $COMMAND
+            """))
+        ui, command = self.get_test_ui_and_cmd2()
+        ui.proc_outputs = [b'P1 P2', b'I1', b'', b'I2', b'']
+        self.useFixture(command)
+        fixture = self.useFixture(command.get_run_command(
+            test_ids=['P1/1', 'P2/2']))
+        procs = fixture.run_tests()
+        self.expectThat(ui.outputs, MatchesAny(Equals([
+            ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', 'p -c 1 P1')]),
+            ('popen', ('p -c 1 P1',), {'shell': True, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('q I1 -- foo 1 P1'))]),
+            ('popen', (_u('q I1 -- foo 1 P1'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('values', [('running', 'p -c 1 P2')]),
+            ('popen', ('p -c 1 P2',), {'shell': True, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('q I2 -- foo 2 P2'))]),
+            ('popen', (_u('q I2 -- foo 2 P2'),), {'shell': True, 'stdin': -1, 'stdout': -1})
+            ]), Equals([
+            ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', 'p -c 1 P2')]),
+            ('popen', ('p -c 1 P2',), {'shell': True, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('q I1 -- foo 2 P2'))]),
+            ('popen', (_u('q I1 -- foo 2 P2'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('values', [('running', 'p -c 1 P1')]),
+            ('popen', ('p -c 1 P1',), {'shell': True, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('q I2 -- foo 1 P1'))]),
+            ('popen', (_u('q I2 -- foo 1 P1'),), {'shell': True, 'stdin': -1, 'stdout': -1})
+            ])))
 
     def test_run_tests_with_existing_instances_configured(self):
         # when there are instances present, they are pulled out for running
@@ -748,6 +859,12 @@ class TestTestCommand(ResourcedTestCase):
             set(),
             testcommand._list_profiles(command.get_parser(), ui))
         self.assertEqual([], ui.outputs)
+
+    def get_test_ui_and_cmd2(self, options=(), args=(), repository=None):
+        self.dirty()
+        ui = UI(options=options, args=args)
+        ui.here = self.tempdir
+        return ui, TestCommand(ui, repository)
 
     def test_filter_tests_by_regex_only(self):
         if v2_avail:

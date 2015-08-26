@@ -24,9 +24,7 @@ function start {
 
 profile=$1
 instance=$2
-profile=2.7
-instance=$1
-shift 1
+shift 2
 container $profile
 files=
 # accumulate files to copy

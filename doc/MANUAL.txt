@@ -234,11 +234,10 @@ test scenarios. For instance with a C program you may wish to test against
 both `clang` and `gcc`. In Python you may wish to test against multiple
 releases of cPython, or against different Python implementations, or both.
 
-Testr delegates the creation of such a test matrix to you, but will request a
-separate test environment for each *profile*. When test identifiers are
-supplied to testr on either the command line or listing files, they may be
-namespaced with a particular test profile. If they are not namespaced,
-they will be applied to all profiles.
+Testr delegates the creation of such a test matrix to you. When test
+identifiers are supplied to testr on either the command line or
+listing files, they may be namespaced with a particular test profile.
+If they are not namespaced, they will be applied to all profiles.
 
 Another common issue occurs with with parallel test running where test runners
 that use global resources such as well known ports, well known database names
@@ -249,7 +248,14 @@ containers or even separate machines. Such environments typically require
 some coordination when being used to run tests, so testr provides an explicit
 model for instantiating and disposing of such test environments. Testr does
 not differentiate between running commands in a regular subprocess, or via ssh
-to an arbitrary endpoint: they are all just test environments.
+to an arbitrary endpoint: they are all just test environments. Testr
+will request a separate test environment for each *profile* when
+environments are in use, allowing you to customise the context tests
+run within. If all your environments are homogenous then testr will
+currently overprovision environments when used with profiles. This can
+be worked around in your environment provisioning code. Future
+improvements will make profiles combined with isolated environments
+more flexible.
 
 The model testr has is intended to support both developers working
 incrementally on a change and CI systems running tests in a one-off setup,
@@ -268,8 +274,8 @@ The process testr follows is:
    testr gets an online scheduler, it will loop around the profiles one at a
    time.
 6. testr will then provision as many instances as needed to execute the tests.
-   The provisioning callout involves to synchronising source code and do any
-   other per-instance.
+   The provisioning callout is responsible for synchronising source
+   code and do any other per-instance preparation.
 7. testr will make callouts to execute tests, supplying files that should be
    copied into the execution environment. Note that instances may be used for
    more than one command execution.
@@ -291,9 +297,9 @@ For instance::
 
   list_profiles=echo py27 py34
   default_profiles=echo py27
-  instance_provision=foo -c $INSTANCE_COUNT $INSTANCE_PROFILE
-  instance_dispose=bar $INSTANCE_PROFILE $INSTANCE_IDS 
-  instance_execute=quux $INSTANCE_PROFILE $INSTANCE_ID $FILES -- $COMMAND
+  instance_provision=foo -c $INSTANCE_COUNT $PROFILE
+  instance_dispose=bar $PROFILE $INSTANCE_IDS 
+  instance_execute=quux $PROFILE $INSTANCE_ID $FILES -- $COMMAND
 
 These should operate as follows:
 
@@ -310,7 +316,7 @@ These should operate as follows:
   the value of default_profiles.
 
 * instance_provision should start up the number of instances provided in the
-  $INSTANCE_COUNT parameter suitable for running the $INSTANCE_PROFILE
+  $INSTANCE_COUNT parameter suitable for running the $PROFILE
   environment. It should print out on stdout the instance ids that testr
   should supply to the dispose and execute commands. These are scoped by
   testr to the profile (they may overlap those from a different profile).

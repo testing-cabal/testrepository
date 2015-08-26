@@ -35,6 +35,7 @@ from textwrap import dedent
 
 from fixtures import Fixture
 v2 = try_import('subunit.v2')
+from testtools.compat import _b, _u
 
 from testrepository import results
 from testrepository._computecontext import (
@@ -223,7 +224,7 @@ class RunInInstance(Fixture):
     """Knows how to run commands in an instance.
 
     This involves:
-     - variable substitutions for INSTANCE_ID and INSTANCE_PROFILE only.
+     - variable substitutions for INSTANCE_ID and PROFILE only.
      - allocating and releasing the instance around a command
      - copying files into the remote instance
 
@@ -251,6 +252,9 @@ class RunInInstance(Fixture):
             self.addCleanup(
                 self._instance_source.release_instance, self._instance)
 
+    def _subst_profile(self, cmd):
+        return re.sub('\$(PROFILE)', self._profile, cmd)
+
     def _create_cmd(self, cmd, copyfile):
         """Peform variable substition for cmd.
 
@@ -263,11 +267,12 @@ class RunInInstance(Fixture):
             instance_prefix = self._parser.get('DEFAULT', 'instance_execute')
             variables = {
                 'INSTANCE_ID': self._instance.id,
+                'PROFILE': self._profile,
                 'COMMAND': cmd,
                 # --list-tests cannot use FILES, so handle it being unset.
                 'FILES': copyfile or '',
             }
-            variable_regex = '\$(INSTANCE_ID|COMMAND|FILES)'
+            variable_regex = '\$(INSTANCE_ID|PROFILE|COMMAND|FILES)'
             def subst(match):
                 return variables.get(match.groups(1)[0], '')
             cmd = re.sub(variable_regex, subst, instance_prefix)
@@ -284,6 +289,7 @@ class RunInInstance(Fixture):
             environment.
         """
         cmd = self._create_cmd(cmd, copyfile)
+        cmd = self._subst_profile(cmd)
         self._ui.output_values([('running', cmd)])
         run_proc = self._ui.subprocess_Popen(cmd, shell=True,
             stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -299,7 +305,7 @@ class RunTestProcess(Fixture):
     def __init__(
             self, ui, instance_source, config, listpath, template, test_ids,
             idoption, profile):
-        """Create a RunInInstance.
+        """Create a RunTestProcess.
 
         :param ui: The ui object to provide user feedback and perform Popen.
         :param instance_source: An instance source.
@@ -521,7 +527,7 @@ class TestListingFixture(Fixture):
         for profile in profiles:
             ids = self._list_tests(profile)
             for test_id in ids:
-                result.append(u'%s/%s' % (profile, test_id))
+                result.append(_u('%s/%s') % (profile, test_id))
         return result
 
     def _list_tests(self, profile):
@@ -716,7 +722,7 @@ class TestCommand(Fixture):
         self.default_profiles = _default_profiles(self.get_parser(), self.ui)
         if not self.profiles:
             # Default configuration
-            self.profiles = set([u'DEFAULT'])
+            self.profiles = set([_u('DEFAULT')])
         if not self.default_profiles:
             # Default configuration
             self.default_profiles = set(self.profiles)
@@ -835,9 +841,15 @@ class TestCommand(Fixture):
             except ConfigParser.NoOptionError:
                 # Instance allocation not configured
                 return None
-            variable_regex = '\$INSTANCE_COUNT'
-            cmd = re.sub(variable_regex,
-                str(self.concurrency - self._instance_cache.size(profile)), cmd)
+            variable_regex = '\$(INSTANCE_COUNT|PROFILE)'
+            variables = {
+                'INSTANCE_COUNT': str(
+                    self.concurrency - self._instance_cache.size(profile)),
+                'PROFILE': profile
+                }
+            def subst(match):
+                return variables.get(match.groups(1)[0], '')
+            cmd = re.sub(variable_regex, subst, cmd)
             self.ui.output_values([('running', cmd)])
             proc = self.ui.subprocess_Popen(
                 cmd, shell=True, stdout=subprocess.PIPE)

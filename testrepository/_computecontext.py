@@ -16,6 +16,7 @@
 
 __all__ = ['Cache', 'Instance']
 
+import functools
 from collections import defaultdict, namedtuple
 from itertools import chain
 
@@ -54,7 +55,7 @@ class Cache:
     def all(self):
         """Return an iterable of all instances."""
         instances = set()
-        return frozenset(reduce(
+        return frozenset(functools.reduce(
             lambda l, r: l.union(r),
             chain(self._available.values(), self._allocated.values()),
             set()))

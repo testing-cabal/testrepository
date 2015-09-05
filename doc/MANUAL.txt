@@ -445,6 +445,14 @@ files (for a format 1 repository - the only current format):
   ``testr repo-config`` will dump a repo configration and
   ``test help repo-config`` has online help for all the repository settings.
 
+Stream requirements
+~~~~~~~~~~~~~~~~~~~
+
+This section is relevant for folk writing their own stream generators. Streams
+need to be Subunit V2 if the v2 module is available. Streams can include the
+same test multiple times, but if the same test is running concurrently they
+must be disambiguated via unique route codes.
+
 setuptools integration
 ~~~~~~~~~~~~~~~~~~~~~~
 

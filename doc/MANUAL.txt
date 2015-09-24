@@ -32,6 +32,40 @@ Most commands in testr have comprehensive online help, and the commands::
 
 Will be useful to explore the system.
 
+Concepts
+~~~~~~~~
+
+Repository
+----------
+
+A store of the output from tests that were run, which can be datamined.
+Defaults to `./.testrepository`.
+
+Subunit stream
+--------------
+
+A structured format for representing the activity that occurs during a test
+run. See the subunit project documentation for more information.
+
+Test profile
+------------
+
+A particular configuration that tests are being run under.
+
+Test id
+-------
+
+The identifier for a test. These should uniquely identify a single test that
+is going to be run. Id's are simple unicode strings that may contain
+whitespace but not newlines.
+
+Test runner
+-----------
+
+The thing responsible for running your test suite and generating a subunit
+stream. Test repository includes an (optional) runner with the `run` and
+`list-tests` commands.
+
 Configuration
 ~~~~~~~~~~~~~
 
@@ -40,6 +74,10 @@ directory that testr is run from. testr includes online help for all the
 options that can be set within it::
 
   $ testr help run
+
+Currently all the configuration pertains to the (optional) testrepository
+runner. The `load`, `failing`, `last` and other query commands work on the
+data store don't have configuration.
 
 Python
 ------

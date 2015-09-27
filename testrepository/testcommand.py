@@ -34,6 +34,7 @@ import multiprocessing
 from textwrap import dedent
 
 from fixtures import Fixture
+from shellvars import evaluate, SKIP
 v2 = try_import('subunit.v2')
 from testtools.compat import _b, _u
 
@@ -144,7 +145,7 @@ class CallWhenProcFinishes(object):
 
 def apply_profiles(profiles, test_ids):
     """Put each test id in test_ids into all of profiles."""
-    result = set()
+    result = {}
     profiles = set(profiles)
     for test_id in test_ids:
         segments = test_id.rsplit('/', 1)
@@ -216,8 +217,12 @@ def local_concurrency():
         return None
 
 
-compiled_re_type = type(re.compile(''))
-run_regex = '\$(IDOPTION|IDFILE|IDLIST|LISTOPT)'
+_run_default_vars = {
+    'IDOPTION': '',
+    'IDFILE': '',
+    'IDLIST': '',
+    'LISTOPT': '',
+    }
 
 
 class RunInInstance(Fixture):
@@ -252,9 +257,6 @@ class RunInInstance(Fixture):
             self.addCleanup(
                 self._instance_source.release_instance, self._instance)
 
-    def _subst_profile(self, cmd):
-        return re.sub('\$(PROFILE)', self._profile, cmd)
-
     def _create_cmd(self, cmd, copyfile):
         """Peform variable substition for cmd.
 
@@ -272,10 +274,7 @@ class RunInInstance(Fixture):
                 # --list-tests cannot use FILES, so handle it being unset.
                 'FILES': copyfile or '',
             }
-            variable_regex = '\$(INSTANCE_ID|PROFILE|COMMAND|FILES)'
-            def subst(match):
-                return variables.get(match.groups(1)[0], '')
-            cmd = re.sub(variable_regex, subst, instance_prefix)
+            cmd, _ = evaluate(instance_prefix, variables, absent=SKIP)
         except ConfigParser.NoOptionError:
             # Per-instance execution environment not configured.
             pass
@@ -289,7 +288,7 @@ class RunInInstance(Fixture):
             environment.
         """
         cmd = self._create_cmd(cmd, copyfile)
-        cmd = self._subst_profile(cmd)
+        cmd, _ = evaluate(cmd, {'PROFILE': self._profile}, absent=SKIP)
         self._ui.output_values([('running', cmd)])
         run_proc = self._ui.subprocess_Popen(cmd, shell=True,
             stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -332,7 +331,7 @@ class RunTestProcess(Fixture):
     def _setUp(self):
         runner = self.useFixture(
             RunInInstance(self._ui, self._instance_source, self._parser, self._profile))
-        variables = {}
+        variables = dict(_run_default_vars)
         def subst(match):
             return variables.get(match.groups(1)[0], '')
         if self._test_ids is None:
@@ -345,10 +344,10 @@ class RunTestProcess(Fixture):
             list_file_name = self._make_listfile()
             variables['IDFILE'] = list_file_name
             idlist = ' '.join(self._test_ids)
-            idoption = re.sub(run_regex, subst, self._idoption)
+            idoption, _ = evaluate(self._idoption, variables, absent=SKIP)
             variables['IDOPTION'] = idoption
         variables['IDLIST'] = idlist
-        cmd = re.sub(run_regex, subst, self._template)
+        cmd, _ = evaluate(self._template, variables, absent=SKIP)
         run_proc = runner.spawn(cmd, list_file_name)
         # Prevent processes stalling if they read from stdin; we could
         # pass this through in future, but there is no point doing that
@@ -427,10 +426,7 @@ class TestListingFixture(Fixture):
             same group id are scheduled onto the same backend test process.
         """
         if test_ids is not None:
-            test_ids = list(test_ids)
-            for test_id in test_ids:
-                if '/' not in test_id:
-                    raise Exception("Bad test id %r" % (test_id,))
+            test_ids = dict(test_ids)
         self.test_ids = test_ids
         self.template = cmd_template
         self.listopt = listopt
@@ -450,7 +446,8 @@ class TestListingFixture(Fixture):
     def setUp(self):
         super(TestListingFixture, self).setUp()
         # -- list_cmd: depends on parser.
-        list_variables = {'LISTOPT': self.listopt}
+        list_variables = dict(_run_default_vars)
+        list_variables['LISTOPT'] = self.listopt
         cmd = self.template
         try:
             default_idstr = self._parser.get('DEFAULT', 'test_id_list_default')
@@ -461,9 +458,7 @@ class TestListingFixture(Fixture):
             if e.message != "No option 'test_id_list_default' in section: 'DEFAULT'":
                 raise
             default_idstr = None
-        def list_subst(match):
-            return list_variables.get(match.groups(1)[0], '')
-        self.list_cmd = re.sub(run_regex, list_subst, cmd)
+        self.list_cmd, _ = evaluate(cmd, list_variables, absent=SKIP)
         # -- END list_cmd
         # test id calculations
         if self.test_ids is None:
@@ -523,11 +518,10 @@ class TestListingFixture(Fixture):
         """
         if '$LISTOPT' not in self.template:
             raise ValueError("LISTOPT not configured in .testr.conf")
-        result = []
+        result = {}
         for profile in profiles:
             ids = self._list_tests(profile)
-            for test_id in ids:
-                result.append(_u('%s/%s') % (profile, test_id))
+            result[profile] = ids
         return result
 
     def _list_tests(self, profile):
@@ -737,12 +731,10 @@ class TestCommand(Fixture):
         except (ValueError, ConfigParser.NoOptionError):
             # User has said we don't need to dispose of instances.
             return
-        variable_regex = '\$INSTANCE_IDS'
         instances = cache.all()
-        dispose_cmd = re.sub(
-            variable_regex,
-            ' '.join(sorted(instance.id for instance in instances)),
-            dispose_cmd)
+        instance_ids = ' '.join(sorted(instance.id for instance in instances))
+        variables = {'INSTANCE_IDS': instance_ids}
+        dispose_cmd, _ = evaluate(dispose_cmd, variables, absent=SKIP)
         self.ui.output_values([('running', dispose_cmd)])
         run_proc = self.ui.subprocess_Popen(dispose_cmd, shell=True)
         run_proc.communicate()
@@ -841,15 +833,12 @@ class TestCommand(Fixture):
             except ConfigParser.NoOptionError:
                 # Instance allocation not configured
                 return None
-            variable_regex = '\$(INSTANCE_COUNT|PROFILE)'
             variables = {
                 'INSTANCE_COUNT': str(
                     self.concurrency - self._instance_cache.size(profile)),
                 'PROFILE': profile
                 }
-            def subst(match):
-                return variables.get(match.groups(1)[0], '')
-            cmd = re.sub(variable_regex, subst, cmd)
+            cmd, _ = evaluate(cmd, variables, absent=SKIP)
             self.ui.output_values([('running', cmd)])
             proc = self.ui.subprocess_Popen(
                 cmd, shell=True, stdout=subprocess.PIPE)

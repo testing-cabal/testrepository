@@ -273,9 +273,9 @@ both `clang` and `gcc`. In Python you may wish to test against multiple
 releases of cPython, or against different Python implementations, or both.
 
 Testr delegates the creation of such a test matrix to you. When test
-identifiers are supplied to testr on either the command line or
-listing files, they may be namespaced with a particular test profile.
-If they are not namespaced, they will be applied to all profiles.
+identifiers are supplied to testr via listing files, they may be tagged with a
+particular test profile. If they are not tagged, they will be applied to all
+profiles.
 
 Another common issue occurs with with parallel test running where test runners
 that use global resources such as well known ports, well known database names

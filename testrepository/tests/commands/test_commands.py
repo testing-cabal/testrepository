@@ -31,7 +31,8 @@ class TestCommandCommands(ResourcedTestCase):
         ui, cmd = self.get_test_ui_and_cmd()
         cmd.execute()
         self.assertEqual(1, len(ui.outputs))
-        self.assertEqual('table', ui.outputs[0][0])
+        self.assertEqual(
+            'table', ui.outputs[0][0], 'outputs: %r' % (ui.outputs,))
         self.assertEqual(('command', 'description'), ui.outputs[0][1][0])
         command_names = [row[0] for row in ui.outputs[0][1]]
         summaries = [row[1] for row in ui.outputs[0][1]]

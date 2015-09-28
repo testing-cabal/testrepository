@@ -15,6 +15,7 @@
 """Tests for the list_tests command."""
 
 from io import BytesIO
+import json
 import os.path
 from subprocess import PIPE
 
@@ -125,5 +126,40 @@ class TestCommand(ResourcedTestCase):
              {'shell': True, 'stdout': PIPE, 'stdin': PIPE}),
             ('communicate',),
             ('stream', _b('returned\n')),
+            ], ui.outputs)
+        self.assertEqual(0, retcode)
+
+    def test_json(self):
+        ui, cmd = self.get_test_ui_and_cmd(options=[('json', True)])
+        cmd.repository_factory = memory.RepositoryFactory()
+        if v2_avail:
+            buffer = BytesIO()
+            stream = subunit.StreamResultToBytes(buffer)
+            stream.status(
+                test_id='return', test_status='exists', test_tags=['p1'])
+            stream.status(
+                test_id='values', test_status='exists', test_tags=['p2'])
+            subunit_bytes = buffer.getvalue()
+        else:
+            subunit_bytes = _b('tags: p1\nreturn\ntags: -p1 p2\nvalues\n')
+        ui.proc_outputs = [subunit_bytes]
+        self.setup_repo(cmd, ui)
+        self.set_config(
+            '[DEFAULT]\ntest_command=foo $LISTOPT $IDOPTION\n'
+            'test_id_option=--load-list $IDFILE\n'
+            'test_list_option=--list\n')
+        retcode = cmd.execute()
+        expected_cmd = 'foo --list '
+        expected_as_dict = {
+            'return': {'profiles': ['p1']},
+            'values': {'profiles': ['p2']},
+            }
+        expected_bytes = json.dumps(expected_as_dict, sort_keys=True)
+        self.assertEqual([
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdout': PIPE, 'stdin': PIPE}),
+            ('communicate',),
+            ('stream', expected_bytes),
             ], ui.outputs)
         self.assertEqual(0, retcode)

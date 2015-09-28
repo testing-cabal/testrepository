@@ -514,14 +514,20 @@ class TestListingFixture(Fixture):
         """List the tests returned by list_cmd in profiles.
 
         :param profiles: The profiles to query.
-        :return: A list of test ids.
+        :return: A dict of testname:testmetadata dicts. Current metadata keys
+            are 'profiles'. e.g. {'test': {'profiles': ['p1']}}
         """
         if '$LISTOPT' not in self.template:
             raise ValueError("LISTOPT not configured in .testr.conf")
         result = {}
         for profile in profiles:
             ids = self._list_tests(profile)
-            result[profile] = ids
+            for test_id in ids:
+                meta = result.get(test_id)
+                if meta is None:
+                    meta = {'profiles': []}
+                    result[test_id] = meta
+                meta['profiles'].append(profile)
         return result
 
     def _list_tests(self, profile):

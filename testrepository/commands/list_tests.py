@@ -15,6 +15,8 @@
 """List the tests from a project and show them."""
 
 from io import BytesIO
+import json
+import optparse
 
 from testtools import TestResult
 from testtools.compat import _b
@@ -32,6 +34,10 @@ class list_tests(Command):
 
     args = [StringArgument('testfilters', 0, None), DoubledashArgument(),
         StringArgument('testargs', 0, None)]
+    options = [
+        optparse.Option("--json", action="store_true",
+            default=False, help="Output list in JSON format."),
+        ]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
@@ -53,10 +59,12 @@ class list_tests(Command):
                     ids = cmd.list_tests(testcommand.default_profiles)
                 else:
                     ids = cmd.test_ids
-                ids = strip_namespace(ids)
                 stream = BytesIO()
-                for id in ids:
-                    stream.write(('%s\n' % id).encode('utf8'))
+                if self.ui.options.json:
+                    json.dump(ids, stream, sort_keys=True)
+                else:
+                    for id in ids:
+                        stream.write(('%s\n' % id).encode('utf8'))
                 stream.seek(0)
                 self.ui.output_stream(stream)
                 return 0

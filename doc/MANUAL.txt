@@ -188,6 +188,10 @@ by ``testr list-tests myfilter``. As with 'run', arguments to 'list-tests' are
 used to regex filter the tests of the test runner, and arguments after a '--'
 are passed to the test runner.
 
+``testr list-tests --json`` will output the tests as structured data, allowing
+reporting on which profiles the tests are found in. The current schema is
+`{test: {profiles: [profilename, ...]}}`.
+
 Parallel testing
 ~~~~~~~~~~~~~~~~
 

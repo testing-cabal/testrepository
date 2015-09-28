@@ -76,10 +76,13 @@ class BaseTestCommand(ResourcedTestCase):
         repo = cmd.repository_factory.initialise(ui.here)
         inserter = repo.get_inserter()
         inserter.startTestRun()
-        inserter.status(test_id='DEFAULT/passing', test_status='success')
+        inserter.status(
+            test_id='passing', test_status='success', test_tags=['DEFAULT'])
         if failures:
-            inserter.status(test_id='DEFAULT/failing1', test_status='fail')
-            inserter.status(test_id='DEFAULT/failing2', test_status='fail')
+            inserter.status(
+                test_id='failing1', test_status='fail', test_tags=['DEFAULT'])
+            inserter.status(
+            test_id='failing2', test_status='fail', test_tags=['DEFAULT'])
         inserter.stopTestRun()
 
     def capture_ids(self, list_result=None):
@@ -336,7 +339,11 @@ class TestCommand(BaseTestCommand):
             ('summary', True, 0, -3, None, None, [('id', 1, None)])
             ], ui.outputs)
         self.assertEqual(0, cmd_result)
-        self.assertThat(params[0][1], Equals(['DEFAULT/failing1', 'DEFAULT/failing2']))
+        expected_ids = {
+            'failing1': {'profiles': ['DEFAULT']},
+            'failing2': {'profiles': ['DEFAULT']},
+            }
+        self.assertThat(params[0][1], Equals(expected_ids))
         self.assertThat(
             params[0][2], MatchesListwise([Equals('bar'), Equals('quux')]))
         self.assertThat(params[0][3], MatchesListwise([Equals('g1')]))
@@ -530,6 +537,7 @@ class TestLoadingIds(BaseTestCommand):
         self.assertEqual([[Wildcard, expected_ids, [], None]], params)
 
     def test_load_list_failing_takes_id_intersection(self):
+        # XXX: teach about profiles
         list_file = tempfile.NamedTemporaryFile()
         self.addCleanup(list_file.close)
         load_ids = set(['foo', 'quux', 'failing1'])
@@ -538,7 +546,7 @@ class TestLoadingIds(BaseTestCommand):
         write_list(list_file, load_ids)
         # The extra tests - foo, quux - won't match known failures, and the
         # unlisted failure failing2 won't match the list.
-        expected_ids = set(['DEFAULT/failing1'])
+        expected_ids = {'failing1': {'profiles': ['DEFAULT']}}
         list_file.flush()
         ui, cmd = self.get_test_ui_and_cmd(
             options=[('load_list', list_file.name), ('failing', True)])

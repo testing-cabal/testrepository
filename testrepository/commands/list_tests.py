@@ -25,7 +25,7 @@ from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
 from testrepository.commands import Command
 from testrepository.testcommand import (
-    strip_namespace, testrconf_help, TestCommand)
+    testrconf_help, TestCommand)
 
 
 class list_tests(Command):
@@ -63,7 +63,7 @@ class list_tests(Command):
                 if self.ui.options.json:
                     json.dump(ids, stream, sort_keys=True)
                 else:
-                    for id in ids:
+                    for id in sorted(ids):
                         stream.write(('%s\n' % id).encode('utf8'))
                 stream.seek(0)
                 self.ui.output_stream(stream)

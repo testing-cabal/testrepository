@@ -156,7 +156,9 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
         ui, command = self.get_test_ui_and_cmd()
-        fixture = command.get_run_command(['DEFAULT/failing', 'DEFAULT/alsofailing'])
+        fixture = command.get_run_command(
+            test_ids={'failing': {'profiles': ['DEFAULT']},
+                      'alsofailing': {'profiles': ['DEFAULT']}})
         with fixture:
             procs = fixture.run_tests()
             list_file_path = procs[0].list_file_name
@@ -167,14 +169,16 @@ class TestTestCommand(ResourcedTestCase):
                 source.close()
             procs[0].run_proc.stdout.read()
             procs[0].run_proc.wait()
-            self.assertEqual("failing\nalsofailing\n", list_file_content)
+            self.assertEqual("alsofailing\nfailing\n", list_file_content)
         self.assertFalse(os.path.exists(list_file_path))
 
     def test_get_run_command_IDFILE_variable_setting(self):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
         ui, command = self.get_test_ui_and_cmd()
-        fixture = self.useFixture(command.get_run_command(['DEFAULT/failing', 'DEFAULT/alsofailing']))
+        fixture = self.useFixture(command.get_run_command(
+            test_ids={'failing': {'profiles': ['DEFAULT']},
+                      'alsofailing': {'profiles': ['DEFAULT']}}))
         procs = fixture.run_tests()
         expected_cmd = 'foo --load-list %s' % procs[0].list_file_name
         procs[0].run_proc.wait()
@@ -189,9 +193,11 @@ class TestTestCommand(ResourcedTestCase):
             '[DEFAULT]\ntest_command=foo $IDLIST\n')
         ui, command = self.get_test_ui_and_cmd()
         fixture = self.useFixture(
-            command.get_run_command(['DEFAULT/failing', 'DEFAULT/alsofailing']))
+            command.get_run_command(
+            test_ids={'failing': {'profiles': ['DEFAULT']},
+                      'alsofailing': {'profiles': ['DEFAULT']}}))
         procs = fixture.run_tests()
-        expected_cmd = 'foo failing alsofailing'
+        expected_cmd = 'foo alsofailing failing'
         procs[0].run_proc.wait()
         self.assertEqual([
             ('values', [('running', expected_cmd)]),
@@ -322,7 +328,8 @@ class TestTestCommand(ResourcedTestCase):
             'instance_provision=provision -c $INSTANCE_COUNT\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
         command = self.useFixture(TestCommand(ui, None))
-        fixture = self.useFixture(command.get_run_command(test_ids=['DEFAULT/1']))
+        fixture = self.useFixture(command.get_run_command(
+            test_ids={'1': {'profiles': ['DEFAULT']}}))
         fixture.list_tests([_u('DEFAULT')])
         self.assertEqual(2, command._instance_cache.size('DEFAULT'))
         # Little ugly. We can allocate two, as the list used and released one.
@@ -388,8 +395,9 @@ class TestTestCommand(ResourcedTestCase):
         self.useFixture(command)
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
-            set(['DEFAULT/returned', 'DEFAULT/ids']),
-            set(fixture.list_tests([_u('DEFAULT')])))
+            {u'ids': {'profiles': [u'DEFAULT']},
+             u'returned': {'profiles': [u'DEFAULT']}},
+            fixture.list_tests([_u('DEFAULT')]))
 
     def test_list_tests_nonzero_exit(self):
         ui, command = self.get_test_ui_and_cmd2()
@@ -427,8 +435,10 @@ class TestTestCommand(ResourcedTestCase):
         command = self.useFixture(TestCommand(ui, None))
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
-            set(['P1/returned', 'P1/ids', 'P2/more', 'P2/ids']),
-            set(fixture.test_ids))
+            {u'ids': {'profiles': [u'P1', u'P2']},
+             u'more': {'profiles': [u'P2']},
+             u'returned': {'profiles': [u'P1']}},
+            fixture.test_ids)
         # Little ugly. We can allocate two, as the list used and released one.
         command._instance_cache.allocate('P1')
         command._instance_cache.allocate('P1')
@@ -471,8 +481,10 @@ class TestTestCommand(ResourcedTestCase):
         command = self.useFixture(TestCommand(ui, None))
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
-            set(['P1/returned', 'P1/ids', 'P2/more', 'P2/ids']),
-            set(fixture.list_tests(['P1', 'P2'])))
+            {u'ids': {'profiles': [u'P1', u'P2']},
+             u'more': {'profiles': [u'P2']},
+             u'returned': {'profiles': [u'P1']}},
+            fixture.list_tests(['P1', 'P2']))
         self.assertThat(ui.outputs, Equals([
             ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',),
@@ -604,7 +616,7 @@ class TestTestCommand(ResourcedTestCase):
         ui.proc_outputs = [b'P1 P2', b'', b'']
         self.useFixture(command)
         fixture = self.useFixture(command.get_run_command(
-            test_ids=['P1/1', 'P2/2']))
+            test_ids={'1': {'profiles': ['P1']}, '2': {'profiles': ['P2']}}))
         procs = fixture.run_tests()
         self.expectThat(ui.outputs, MatchesAny(Equals([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
@@ -636,7 +648,7 @@ class TestTestCommand(ResourcedTestCase):
         ui.proc_outputs = [b'P1 P2', b'I1', b'', b'I2', b'']
         self.useFixture(command)
         fixture = self.useFixture(command.get_run_command(
-            test_ids=['P1/1', 'P2/2']))
+            test_ids={'1': {'profiles': ['P1']}, '2': {'profiles': ['P2']}}))
         procs = fixture.run_tests()
         self.expectThat(ui.outputs, MatchesAny(Equals([
             ('popen', ('probe',), {'shell': True, 'stdin': -1, 'stdout': -1}),
@@ -674,7 +686,8 @@ class TestTestCommand(ResourcedTestCase):
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
         ui, command = self.get_test_ui_and_cmd()
         command._instance_cache.add(Instance('DEFAULT', 'bar'))
-        fixture = self.useFixture(command.get_run_command(test_ids=['DEFAULT/1']))
+        fixture = self.useFixture(command.get_run_command(
+            test_ids={'1':{'profiles':['DEFAULT']}}))
         procs = fixture.run_tests()
         self.assertEqual([
             ('values', [('running', 'quux bar -- foo 1')]),
@@ -700,7 +713,8 @@ class TestTestCommand(ResourcedTestCase):
         command._instance_cache.add(Instance('DEFAULT', 'baz'))
         command._instance_cache.allocate('DEFAULT')
         command._instance_cache.add(Instance('DEFAULT', 'bar'))
-        fixture = self.useFixture(command.get_run_command(test_ids=['DEFAULT/1']))
+        fixture = self.useFixture(command.get_run_command(
+            test_ids={'1': {'profiles': ['DEFAULT']}}))
         procs = fixture.run_tests()
         self.assertEqual([
             ('values', [('running', 'quux bar -- foo 1')]),
@@ -724,7 +738,8 @@ class TestTestCommand(ResourcedTestCase):
             'instance_execute=quux $INSTANCE_ID $FILES -- $COMMAND\n')
         ui, command = self.get_test_ui_and_cmd()
         command._instance_cache.add(Instance('DEFAULT', 'bar'))
-        fixture = self.useFixture(command.get_run_command(test_ids=['DEFAULT/1']))
+        fixture = self.useFixture(command.get_run_command(
+            test_ids={'1': {'profiles': ['DEFAULT']}}))
         procs = fixture.run_tests()
         list_file = procs[0].list_file_name
         expected_cmd = 'quux bar %s -- foo %s' % (list_file, list_file)
@@ -883,7 +898,8 @@ class TestTestCommand(ResourcedTestCase):
         self.useFixture(command)
         filters = ['return']
         fixture = self.useFixture(command.get_run_command(test_filters=filters))
-        self.assertEqual(['DEFAULT/returned'], fixture.test_ids)
+        self.assertEqual(
+            {'returned': {'profiles': ['DEFAULT']}}, fixture.test_ids)
 
     def test_filter_tests_by_regex_supplied_ids(self):
         ui, command = self.get_test_ui_and_cmd2()
@@ -893,10 +909,14 @@ class TestTestCommand(ResourcedTestCase):
             'test_list_option=--list\n')
         self.useFixture(command)
         filters = ['return']
+        test_ids = {}
+        for test_id in 'return of the king'.split():
+            test_ids[test_id] = {'profiles': ['DEFAULT']}
         fixture = self.useFixture(command.get_run_command(
-            test_ids=['DEFAULT/return', 'DEFAULT/of', 'DEFAULT/the', 'DEFAULT/king'],
+            test_ids=test_ids,
             test_filters=filters))
-        self.assertEqual(['DEFAULT/return'], fixture.test_ids)
+        self.assertEqual(
+            {'return': {'profiles': ['DEFAULT']}}, fixture.test_ids)
 
     def test_filter_tests_by_regex_supplied_ids_multi_match(self):
         ui, command = self.get_test_ui_and_cmd2()
@@ -906,12 +926,15 @@ class TestTestCommand(ResourcedTestCase):
             'test_list_option=--list\n')
         self.useFixture(command)
         filters = ['return']
+        test_ids = {}
+        for test_id in 'return of the king thereisnoreturn'.split():
+            test_ids[test_id] = {'profiles': ['DEFAULT']}
         fixture = self.useFixture(command.get_run_command(
-            test_ids=['DEFAULT/return', 'DEFAULT/of', 'DEFAULT/the',
-                      'DEFAULT/king', 'DEFAULT/thereisnoreturn'],
+            test_ids=test_ids,
             test_filters=filters))
         self.assertEqual(
-            ['DEFAULT/return', 'DEFAULT/thereisnoreturn'],
+            {'return': {'profiles': ['DEFAULT']},
+             'thereisnoreturn': {'profiles': ['DEFAULT']}},
             fixture.test_ids)
 
 
@@ -919,17 +942,6 @@ class TestApplyProfiles(ResourcedTestCase):
 
     def test_plain(self):
         self.assertEqual(
-            set(['1/a', '1/b', '2/a', '2/b']),
+            {u'a': {'profiles': [u'1', u'2']},
+             u'b': {'profiles': [u'1', u'2']}},
             testcommand.apply_profiles(['1', '2'], ['a', 'b']))
-
-    def test_already_namespaced(self):
-        self.assertEqual(
-            set(['1/a', '2/b']),
-            testcommand.apply_profiles(['1', '2'], ['1/a', '2/b']))
-
-    def test_missing_profiles(self):
-        # When a supplied test is for a profile thats not included, what
-        # should happen? First attempt: treat them as non-namespaced.
-        self.assertEqual(
-            set(['1/2/b', '1/a']),
-            testcommand.apply_profiles(['1'], ['1/a', '2/b']))

@@ -148,21 +148,22 @@ def apply_profiles(profiles, test_ids):
     result = {}
     profiles = set(profiles)
     for test_id in test_ids:
-        segments = test_id.rsplit('/', 1)
-        if len(segments) > 1 and segments[0] in profiles:
-            # already namespaced.
-            result.add(test_id)
-        else:
-            for profile in profiles:
-                result.add("%s/%s" % (profile, test_id))
+        meta = {'profiles': []}
+        result[test_id] = meta
+        meta['profiles'] = list(profiles)
     return result
 
 
-def strip_namespace(test_ids):
-    """Strip the namespace from each test in test_ids."""
+def _profile_tests(test_ids, profile):
+    """Return a list of the test_ids relevant to profile.
+
+    :param test_ids: A test ids dict.
+    """
     result = []
-    for test_id in test_ids:
-        result.append(test_id[test_id.find('/')+1:])
+    for test_id, meta in test_ids.items():
+        if profile in meta['profiles']:
+            result.append(test_id)
+    result.sort()
     return result
 
 
@@ -380,6 +381,7 @@ class TestListingFixture(Fixture):
     """Write a temporary file to disk with test ids in it.
 
     XXX: Being deprecated/removed.
+    :attr test_ids: A dict of test_id -> testmeta.
     """
 
     def __init__(self, test_ids, cmd_template, listopt, idoption, ui,
@@ -496,7 +498,7 @@ class TestListingFixture(Fixture):
     def filter_tests(self, test_ids):
         """Filter test_ids by the test_filters.
 
-        :return: A list of test ids.
+        :return: test_ids filtered. ({test_id: {'profiles':[...]}})
         """
         if self.test_filters is None:
             return test_ids
@@ -505,7 +507,10 @@ class TestListingFixture(Fixture):
             for pred in filters:
                 if pred.search(test_id):
                     return True
-        return list(filter(include, test_ids))
+        result = {}
+        for test_id in filter(include, test_ids):
+            result[test_id] = test_ids[test_id]
+        return result
 
     # XXX Entry point for list_tests command.
     #     Use cases: - all tests across all profiles [testr list-tests], testr run --isolated
@@ -572,10 +577,7 @@ class TestListingFixture(Fixture):
         result = []
         for profile in self._instance_source.default_profiles:
             if self.test_ids is not None:
-                prefix = "%s/" % profile
-                profile_tests = strip_namespace(
-                    [test_id for test_id in self.test_ids
-                     if test_id.startswith(prefix)])
+                profile_tests = _profile_tests(self.test_ids, profile)
             else:
                 profile_tests = None
             result.extend(self._run_tests(profile, profile_tests))

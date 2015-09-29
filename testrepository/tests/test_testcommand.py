@@ -395,8 +395,8 @@ class TestTestCommand(ResourcedTestCase):
         self.useFixture(command)
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
-            {u'ids': {'profiles': [u'DEFAULT']},
-             u'returned': {'profiles': [u'DEFAULT']}},
+            {_u('ids'): {'profiles': [_u('DEFAULT')]},
+             _u('returned'): {'profiles': [_u('DEFAULT')]}},
             fixture.list_tests([_u('DEFAULT')]))
 
     def test_list_tests_nonzero_exit(self):
@@ -435,9 +435,9 @@ class TestTestCommand(ResourcedTestCase):
         command = self.useFixture(TestCommand(ui, None))
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
-            {u'ids': {'profiles': [u'P1', u'P2']},
-             u'more': {'profiles': [u'P2']},
-             u'returned': {'profiles': [u'P1']}},
+            {_u('ids'): {'profiles': [_u('P1'), _u('P2')]},
+             _u('more'): {'profiles': [_u('P2')]},
+             _u('returned'): {'profiles': [_u('P1')]}},
             fixture.test_ids)
         # Little ugly. We can allocate two, as the list used and released one.
         command._instance_cache.allocate('P1')
@@ -481,9 +481,9 @@ class TestTestCommand(ResourcedTestCase):
         command = self.useFixture(TestCommand(ui, None))
         fixture = self.useFixture(command.get_run_command())
         self.assertEqual(
-            {u'ids': {'profiles': [u'P1', u'P2']},
-             u'more': {'profiles': [u'P2']},
-             u'returned': {'profiles': [u'P1']}},
+            {_u('ids'): {'profiles': [_u('P1'), _u('P2')]},
+             _u('more'): {'profiles': [_u('P2')]},
+             _u('returned'): {'profiles': [_u('P1')]}},
             fixture.list_tests(['P1', 'P2']))
         self.assertThat(ui.outputs, Equals([
             ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
@@ -942,6 +942,6 @@ class TestApplyProfiles(ResourcedTestCase):
 
     def test_plain(self):
         self.assertEqual(
-            {u'a': {'profiles': [u'1', u'2']},
-             u'b': {'profiles': [u'1', u'2']}},
+            {_u('a'): {'profiles': [_u('1'), _u('2')]},
+             _u('b'): {'profiles': [_u('1'), _u('2')]}},
             testcommand.apply_profiles(['1', '2'], ['a', 'b']))

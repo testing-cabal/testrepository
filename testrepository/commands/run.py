@@ -156,14 +156,15 @@ class run(Command):
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
-    def _find_failing(self, repo):
+    def _find_failing(self, repo, profiles):
         run = repo.get_failing()
         case = run.get_test()
         ids = {}
         def gather_errors(test_dict):
             if test_dict['status'] == 'fail':
-                # XX: todo handling of profiles.
-                ids[test_dict['id']] = {'profiles': ['DEFAULT']}
+                test_profiles = test_dict['tags'].intersection(
+                    profiles)
+                ids[test_dict['id']] = {'profiles': sorted(test_profiles)}
         result = testtools.StreamToDict(gather_errors)
         result.startTestRun()
         try:
@@ -174,10 +175,6 @@ class run(Command):
 
     def run(self):
         repo = self.repository_factory.open(self.ui.here)
-        if self.ui.options.failing or self.ui.options.analyze_isolation:
-            ids = self._find_failing(repo)
-        else:
-            ids = None
         if self.ui.arguments['testfilters']:
             filters = self.ui.arguments['testfilters']
         else:
@@ -185,6 +182,10 @@ class run(Command):
         testcommand = self.command_factory(self.ui, repo)
         testcommand.setUp()
         try:
+            if self.ui.options.failing or self.ui.options.analyze_isolation:
+                ids = self._find_failing(repo, testcommand.profiles)
+            else:
+                ids = None
             if self.ui.options.load_list:
                 list_ids = set()
                 # Should perhaps be text.. currently does its own decode.
@@ -199,9 +200,12 @@ class run(Command):
                     # We have some already limited set of ids, just reduce to ids
                     # that are both failing and listed.
                     _ids = {}
-                    for test in ids:
-                        if test in list_ids:
-                            _ids[test] = list_ids[test]
+                    for test, id_meta in ids.items():
+                        if test not in list_ids:
+                            continue
+                        profiles = set(id_meta['profiles'])
+                        profiles.intersection_update(list_ids[test]['profiles'])
+                        _ids[test] = {'profiles': sorted(profiles)}
                     ids = _ids
             if not self.ui.options.analyze_isolation:
                 cmd = testcommand.get_run_command(ids, self.ui.arguments['testargs'],

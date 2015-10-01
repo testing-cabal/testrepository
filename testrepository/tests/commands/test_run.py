@@ -18,6 +18,7 @@ from io import BytesIO
 import os.path
 from subprocess import PIPE
 import tempfile
+import textwrap
 
 from extras import try_import
 from fixtures import (
@@ -80,9 +81,11 @@ class BaseTestCommand(ResourcedTestCase):
             test_id='passing', test_status='success', test_tags=['DEFAULT'])
         if failures:
             inserter.status(
-                test_id='failing1', test_status='fail', test_tags=['DEFAULT'])
+                test_id='failing1', test_status='fail',
+                test_tags=['DEFAULT', 'p1'])
             inserter.status(
-            test_id='failing2', test_status='fail', test_tags=['DEFAULT'])
+                test_id='failing2', test_status='fail',
+                test_tags=['DEFAULT', 'p2'])
         inserter.stopTestRun()
 
     def capture_ids(self, list_result=None):
@@ -505,16 +508,16 @@ class TestReturnCodeToSubunit(ResourcedTestCase):
 class TestLoadingIds(BaseTestCommand):
 
     scenarios = [
-        ('nonamespace', {'namespace': ''}),
-        ('namespace', {'namespace': 'DEFAULT'})]
+        ('noprofile', {'profile': ''}),
+        ('profile', {'profile': 'DEFAULT'})]
 
     def test_load_list_passes_ids(self):
         list_file = tempfile.NamedTemporaryFile()
         self.addCleanup(list_file.close)
         expected_ids = set(['foo', 'quux', 'bar'])
         load_ids = set(expected_ids)
-        if self.namespace:
-            load_ids = apply_profiles([self.namespace], load_ids)
+        if self.profile:
+            load_ids = apply_profiles([self.profile], load_ids)
         expected_ids = apply_profiles(['DEFAULT'], expected_ids)
         write_list(list_file, load_ids)
         list_file.flush()
@@ -541,28 +544,49 @@ class TestLoadingIds(BaseTestCommand):
         list_file = tempfile.NamedTemporaryFile()
         self.addCleanup(list_file.close)
         load_ids = set(['foo', 'quux', 'failing1'])
-        if self.namespace:
-            load_ids = apply_profiles([self.namespace], load_ids)
+        if self.profile:
+            load_ids = apply_profiles([self.profile], load_ids)
+        # TODO: json based writing as a separate dimension, otherwise these
+        # apply to all default profiles only.
         write_list(list_file, load_ids)
         # The extra tests - foo, quux - won't match known failures, and the
         # unlisted failure failing2 won't match the list.
-        expected_ids = {'failing1': {'profiles': ['DEFAULT']}}
+        if self.profile:
+            expected_ids = {'failing1': {'profiles': ['DEFAULT', 'p1']}}
+        else:
+            expected_ids = {'failing1': {'profiles': ['DEFAULT']}}
         list_file.flush()
         ui, cmd = self.get_test_ui_and_cmd(
-            options=[('load_list', list_file.name), ('failing', True)])
+            options=[('load_list', list_file.name), ('failing', True)],
+            proc_outputs=[_b("DEFAULT p1 p2")])
         cmd.repository_factory = memory.RepositoryFactory()
         self.setup_repo(cmd, ui)
-        self.set_config(
-            '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
+        config_text = textwrap.dedent("""\
+            [DEFAULT]
+            test_command=foo $IDOPTION
+            test_id_option=--load-list $IDFILE
+            """)
+        # When testing with profiles, declare them
+        if self.profile:
+            config_text = config_text + textwrap.dedent("""\
+                list_profiles=list_profiles
+                """)
+        self.set_config(config_text)
         params, capture_ids = self.capture_ids()
         self.useFixture(MonkeyPatch(
             'testrepository.testcommand.TestCommand.get_run_command',
             capture_ids))
         cmd_result = cmd.execute()
-        self.assertEqual([
+        expected_outputs = [
             ('results', Wildcard),
-            ('summary', True, 0, -3, None, None, [('id', 1, None)])
-            ], ui.outputs)
+            ('summary', True, 0, -3, None, None, [('id', 1, None)]),
+            ]
+        if self.profile:
+            expected_outputs[0:0] = [
+                ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ]
+        self.assertEqual(expected_outputs, ui.outputs)
         self.assertEqual(0, cmd_result)
         self.assertEqual([[Wildcard, expected_ids, [], None]], params)
 

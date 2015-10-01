@@ -61,7 +61,8 @@ class list_tests(Command):
                     ids = cmd.test_ids
                 stream = BytesIO()
                 if self.ui.options.json:
-                    json.dump(ids, stream, sort_keys=True)
+                    stream.write(
+                        json.dumps(ids, sort_keys=True).encode('utf8'))
                 else:
                     for id in sorted(ids):
                         stream.write(('%s\n' % id).encode('utf8'))

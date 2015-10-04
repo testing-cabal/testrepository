@@ -311,10 +311,7 @@ class TestCommandLoad(ResourcedTestCase):
         ui.set_command(cmd)
         cmd.repository_factory = memory.RepositoryFactory()
         repo = cmd.repository_factory.initialise(ui.here)
-        # XXX: Circumvent the AutoTimingTestResultDecorator so we can get
-        # predictable times, rather than ones based on the system
-        # clock. (Would normally expect to use repo.get_inserter())
-        inserter = repo._get_inserter(False)
+        inserter = repo.get_inserter(False)
         # Insert a run with different results.
         inserter.startTestRun()
         inserter.status(test_id=self.id(), test_status='inprogress',

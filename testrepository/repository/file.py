@@ -136,8 +136,8 @@ class Repository(AbstractRepository):
             raise
         return _DiskRun(run_id, run_subunit_content)
 
-    def _get_inserter(self, partial):
-        return _Inserter(self, partial)
+    def _get_inserter(self, partial, profiles):
+        return _Inserter(self, partial, profiles)
 
     def _get_test_times(self, test_ids):
         # May be too slow, but build and iterate.
@@ -220,7 +220,7 @@ class _DiskRun(AbstractTestRun):
 
 class _SafeInserter(object):
 
-    def __init__(self, repository, partial=False):
+    def __init__(self, repository, partial=False, profiles=None):
         # XXX: Perhaps should factor into a decorator and use an unaltered
         # TestProtocolClient.
         self._repository = repository
@@ -228,6 +228,7 @@ class _SafeInserter(object):
         self.fname = name
         stream = os.fdopen(fd, 'wb')
         self.partial = partial
+        self._profiles = profiles
         # The time take by each test, flushed at the end.
         self._times = {}
         self._test_start = None
@@ -309,12 +310,14 @@ class _Inserter(_SafeInserter):
         repo = memory.Repository()
         if self.partial:
             # Seed with current failing
-            inserter = testtools.ExtendedToStreamDecorator(repo.get_inserter())
+            inserter = testtools.ExtendedToStreamDecorator(
+                repo.get_inserter(profiles=self._profiles))
             inserter.startTestRun()
             failing = self._repository.get_failing()
             failing.get_test().run(inserter)
             inserter.stopTestRun()
-        inserter= testtools.ExtendedToStreamDecorator(repo.get_inserter(partial=True))
+        inserter = testtools.ExtendedToStreamDecorator(
+            repo.get_inserter(partial=True, profiles=self._profiles))
         inserter.startTestRun()
         run = self._repository.get_test_run(self.get_id())
         run.get_test().run(inserter)

@@ -78,14 +78,15 @@ class BaseTestCommand(ResourcedTestCase):
         inserter = repo.get_inserter()
         inserter.startTestRun()
         inserter.status(
-            test_id='passing', test_status='success', test_tags=['DEFAULT'])
+            test_id='passing', test_status='success',
+            test_tags=set(['DEFAULT']))
         if failures:
             inserter.status(
                 test_id='failing1', test_status='fail',
-                test_tags=['DEFAULT', 'p1'])
+                test_tags=set(['DEFAULT', 'p1']))
             inserter.status(
                 test_id='failing2', test_status='fail',
-                test_tags=['DEFAULT', 'p2'])
+                test_tags=set(['DEFAULT', 'p2']))
         inserter.stopTestRun()
 
     def capture_ids(self, list_result=None):

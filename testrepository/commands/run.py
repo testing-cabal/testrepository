@@ -203,10 +203,11 @@ class run(Command):
                     for test, id_meta in ids.items():
                         if test not in list_ids:
                             continue
-                        profiles = set(id_meta['profiles'])
-                        profiles.intersection_update(list_ids[test]['profiles'])
-                        _ids[test] = {'profiles': sorted(profiles)}
+                        test_profiles = set(id_meta['profiles'])
+                        test_profiles.intersection_update(list_ids[test]['profiles'])
+                        _ids[test] = {'profiles': sorted(test_profiles)}
                     ids = _ids
+            profiles = testcommand.default_profiles
             if not self.ui.options.analyze_isolation:
                 cmd = testcommand.get_run_command(ids, self.ui.arguments['testargs'],
                     test_filters = filters)
@@ -220,12 +221,12 @@ class run(Command):
                     for test_id in ids:
                         cmd = testcommand.get_run_command([test_id],
                             self.ui.arguments['testargs'], test_filters=filters)
-                        run_result = self._run_tests(cmd)
+                        run_result = self._run_tests(cmd, profiles)
                         if run_result > result:
                             result = run_result
                     return result
                 else:
-                    return self._run_tests(cmd)
+                    return self._run_tests(cmd, profiles)
             else:
                 # Where do we source data about the cause of conflicts.
                 # XXX: Should instead capture the run id in with the failing test
@@ -238,7 +239,7 @@ class run(Command):
                 for test_id in ids:
                     cmd = testcommand.get_run_command([test_id],
                         self.ui.arguments['testargs'], test_filters = filters)
-                    if not self._run_tests(cmd):
+                    if not self._run_tests(cmd, profiles):
                         # If the test was filtered, it won't have been run.
                         if test_id in repo.get_test_ids(repo.latest_id()):
                             spurious_failures.add(test_id)
@@ -269,7 +270,7 @@ class run(Command):
                             candidate_causes[bottom:bottom + check_width]
                             + [spurious_failure],
                             self.ui.arguments['testargs'])
-                        self._run_tests(cmd)
+                        self._run_tests(cmd, profiles)
                         # check that the test we're probing still failed - still
                         # awkward.
                         found_fail = []
@@ -355,7 +356,7 @@ class run(Command):
             prior_tests.extend(worker_tests[:worker_tests.index(failing_id)])
         return prior_tests
 
-    def _run_tests(self, cmd):
+    def _run_tests(self, cmd, profiles):
         """Run the tests cmd was parameterised with."""
         cmd.setUp()
         try:
@@ -364,7 +365,7 @@ class run(Command):
                 for proc in cmd.run_tests():
                     stream = ReturnCodeToSubunit(proc.run_proc)
                     run_procs.append(('subunit', stream))
-                options = {}
+                options = {'profiles': ' '.join(profiles)}
                 if (self.ui.options.failing or self.ui.options.analyze_isolation
                     or self.ui.options.isolated):
                     options['partial'] = True

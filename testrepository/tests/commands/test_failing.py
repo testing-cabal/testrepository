@@ -16,6 +16,9 @@
 
 import doctest
 from io import BytesIO
+import os.path
+import json
+import textwrap
 
 from subunit.v2 import ByteStreamToStreamResult
 import testtools
@@ -34,15 +37,19 @@ from testrepository.tests import (
     StubTestCommand,
     Wildcard,
     )
+from testrepository.tests.stubpackage import TempDirResource
 
 
-class TestCommand(ResourcedTestCase):
+class TestFailingBase(ResourcedTestCase):
 
     def get_test_ui_and_cmd(self, options=(), args=()):
         ui = UI(options=options, args=args)
         cmd = failing.failing(ui)
         ui.set_command(cmd)
         return ui, cmd
+
+
+class TestCommand(TestFailingBase):
 
     def test_shows_failures_from_last_run(self):
         ui, cmd = self.get_test_ui_and_cmd()
@@ -124,10 +131,11 @@ class TestCommand(ResourcedTestCase):
         inserter.stopTestRun()
         self.assertEqual(1, cmd.execute(), ui.outputs)
         self.assertEqual(1, len(ui.outputs))
-        self.assertEqual('tests', ui.outputs[0][0])
+        self.assertEqual('tests_meta', ui.outputs[0][0])
         self.assertEqual(
-            set(['failing1', 'failing2']),
-            set([test.id() for test in ui.outputs[0][1]]))
+            {'failing1': {'profiles': []}, 'failing2': {'profiles': []}},
+            ui.outputs[0][1])
+        self.assertEqual('list', ui.outputs[0][2])
 
     def test_uses_get_failing(self):
         ui, cmd = self.get_test_ui_and_cmd()
@@ -151,3 +159,57 @@ class TestCommand(ResourcedTestCase):
         cmd.repository_factory.initialise(ui.here)
         self.assertEqual(1, cmd.execute())
         self.assertEqual([True], calls)
+
+
+class TestFailingConfig(TestFailingBase):
+    # Tests that need a config file.
+
+    resources = [('tempdir', TempDirResource())]
+
+    def dirty(self):
+        # Ugly: TODO - improve testresources to make this go away.
+        dict(self.resources)['tempdir']._dirty = True
+
+    def config_path(self):
+        return os.path.join(self.tempdir, '.testr.conf')
+
+    def set_config(self, text):
+        self.dirty()
+        with open(self.config_path(), 'wt') as stream:
+            stream.write(text)
+
+    def test_json(self):
+        ui, cmd = self.get_test_ui_and_cmd(options=[('json', True)])
+        cmd.repository_factory = memory.RepositoryFactory()
+        ui.here = self.tempdir
+        repo = cmd.repository_factory.initialise(ui.here)
+        ui.proc_outputs=[_b('p1 p2')]
+        self.set_config(textwrap.dedent("""\
+            [DEFAULT]
+            list_profiles=list_profiles
+            """))
+        inserter = repo.get_inserter(profiles=set(['p1', 'p2']))
+        inserter.startTestRun()
+        # Fails in both
+        inserter.status(
+            test_id='t1', test_status='fail', test_tags=set(['p1']))
+        inserter.status(
+            test_id='t1', test_status='fail', test_tags=set(['p2']))
+        # Fails in one
+        inserter.status(
+            test_id='t2', test_status='fail', test_tags=set(['p1']))
+        inserter.status(
+            test_id='t2', test_status='success', test_tags=set(['p2']))
+        # Only existed in one
+        inserter.status(
+            test_id='t3', test_status='fail', test_tags=set(['p2']))
+        inserter.stopTestRun()
+        self.assertEqual(1, cmd.execute(), ui.outputs)
+        self.assertEqual([
+            ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('tests_meta',
+             {'t1': {'profiles': ['p1', 'p2']}, 't2': {'profiles': ['p1']},
+              't3': {'profiles': ['p2']}},
+             'json'),
+            ], ui.outputs)

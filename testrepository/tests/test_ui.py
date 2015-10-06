@@ -20,6 +20,8 @@ import subprocess
 import sys
 
 from fixtures import EnvironmentVariable
+from testscenarios import multiply_scenarios
+from testtools import ExpectedException
 from testtools.compat import _b, _u
 from testtools.content import text_content
 from testtools.matchers import raises
@@ -64,15 +66,18 @@ ui_implementations = [
     ]
 
 
-class TestUIContract(ResourcedTestCase):
-
-    scenarios = ui_implementations
+class TestUIContractBase(ResourcedTestCase):
 
     def get_test_ui(self):
         ui = self.ui_factory()
         cmd = commands.Command(ui)
         ui.set_command(cmd)
         return ui
+
+
+class TestUIContract(TestUIContractBase):
+
+    scenarios = ui_implementations
 
     def test_factory_noargs(self):
         ui = self.ui_factory()
@@ -144,6 +149,11 @@ class TestUIContract(ResourcedTestCase):
         # things to output.
         ui = self.get_test_ui()
         ui.output_summary(True, 1, None, 1, None, [])
+
+    def test_output_tests(self):
+        # output_tests can be called with an iterable of tests.
+        ui = self.get_test_ui()
+        ui.output_tests([self.__class__('test_output_tests')])
 
     def test_set_command(self):
         # All ui objects can be given their command.
@@ -251,3 +261,23 @@ class TestUIContract(ResourcedTestCase):
         result.status()
         result.stopTestRun()
         summary.wasSuccessful()
+
+    def test_output_tests_meta_unknown_style(self):
+        ui = self.get_test_ui()
+        with ExpectedException(Exception, 'unknown style'):
+            ui.output_tests_meta([], style='strange')
+
+class TestOutputTestsMeta(TestUIContractBase):
+
+    scenarios = multiply_scenarios(ui_implementations, [
+        ('json', dict(style='json')),
+        ('list', dict(style='list')),
+        ])
+
+    def test_output_tests_meta(self):
+        ui = self.get_test_ui()
+        tests = {
+            'foo': {'profiles': ['1', '2']},
+            'bar': {'profiles': ['3', '4']},
+            }
+        ui.output_tests_meta(tests, style=self.style)

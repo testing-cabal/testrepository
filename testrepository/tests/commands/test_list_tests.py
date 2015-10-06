@@ -98,7 +98,10 @@ class TestCommand(ResourcedTestCase):
             ('popen', (expected_cmd,),
              {'shell': True, 'stdout': PIPE, 'stdin': PIPE}),
             ('communicate',),
-            ('stream', _b('returned\nvalues\n')),
+            ('tests_meta',
+              {'returned': {'profiles': ['DEFAULT']},
+               'values': {'profiles': ['DEFAULT']}},
+              'list'),
             ], ui.outputs)
 
     def test_filters_use_filtered_list(self):
@@ -126,7 +129,7 @@ class TestCommand(ResourcedTestCase):
             ('popen', (expected_cmd,),
              {'shell': True, 'stdout': PIPE, 'stdin': PIPE}),
             ('communicate',),
-            ('stream', _b('returned\n')),
+            ('tests_meta', {'returned': {'profiles': ['DEFAULT']}}, 'list')
             ], ui.outputs)
         self.assertEqual(0, retcode)
 
@@ -161,7 +164,7 @@ class TestCommand(ResourcedTestCase):
             'return': {'profiles': ['p1']},
             'values': {'profiles': ['p2']},
             }
-        expected_bytes = json.dumps(expected_as_dict, sort_keys=True)
+        expected_bytes = json.dumps(expected_as_dict, sort_keys=True).encode('utf8')
         self.assertEqual([
             ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',),
@@ -171,6 +174,7 @@ class TestCommand(ResourcedTestCase):
             ('values', [('running', _u('foo --list  p1'))]),
             ('popen', (_u('foo --list  p1'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',),
-            ('stream', expected_bytes),
+            ('tests_meta',
+             {'return': {'profiles': ['p1']}, 'values': {'profiles': ['p2']}}, 'json'),
             ], ui.outputs)
         self.assertEqual(0, retcode)

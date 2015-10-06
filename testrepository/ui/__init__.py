@@ -22,6 +22,9 @@ See AbstractUI for details on what UI classes should do and are responsible
 for.
 """
 
+from io import BytesIO
+import json
+
 from testtools import StreamResult
 
 from testrepository.results import SummarizingResult
@@ -164,6 +167,27 @@ class AbstractUI(object):
             the delta is unknown or inappropriate.
         """
         raise NotImplementedError(self.output_summary)
+
+    def output_tests(self, tests):
+        """Output a list of tests."""
+        raise NotImplementedError(self.output_tests)
+
+    def output_tests_meta(self, tests, style):
+        """Output a test meta dict.
+
+        :param tests: A dict of testname -> testmetadata dicts.
+        :param style: One of 'json', 'list'.
+        """
+        stream = BytesIO()
+        if style == 'json':
+            stream.write(json.dumps(tests, sort_keys=True).encode('utf8'))
+        elif style == 'list':
+            for id in sorted(tests):
+                stream.write(('%s\n' % id).encode('utf8'))
+        else:
+            raise Exception('unknown style %r' % (style,))
+        stream.seek(0)
+        self.output_stream(stream)
 
     def set_command(self, cmd):
         """Inform the UI what command it is running.

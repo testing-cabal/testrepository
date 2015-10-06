@@ -14,8 +14,6 @@
 
 """List the tests from a project and show them."""
 
-from io import BytesIO
-import json
 import optparse
 
 from testtools import TestResult
@@ -59,15 +57,11 @@ class list_tests(Command):
                     ids = cmd.list_tests(testcommand.default_profiles)
                 else:
                     ids = cmd.test_ids
-                stream = BytesIO()
                 if self.ui.options.json:
-                    stream.write(
-                        json.dumps(ids, sort_keys=True).encode('utf8'))
+                    style = 'json'
                 else:
-                    for id in sorted(ids):
-                        stream.write(('%s\n' % id).encode('utf8'))
-                stream.seek(0)
-                self.ui.output_stream(stream)
+                    style = 'list'
+                self.ui.output_tests_meta(ids, style)
                 return 0
             finally:
                 cmd.cleanUp()

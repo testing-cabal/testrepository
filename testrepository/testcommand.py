@@ -150,7 +150,7 @@ def apply_profiles(profiles, test_ids):
     for test_id in test_ids:
         meta = {'profiles': []}
         result[test_id] = meta
-        meta['profiles'] = list(profiles)
+        meta['profiles'] = sorted(profiles)
     return result
 
 

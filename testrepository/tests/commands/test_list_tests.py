@@ -23,7 +23,7 @@ import textwrap
 from extras import try_import
 import subunit
 v2_avail = try_import('subunit.ByteStreamToStreamResult')
-from testtools.compat import _b
+from testtools.compat import _b, _u
 from testtools.matchers import MatchesException
 
 from testrepository.commands import list_tests

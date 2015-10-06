@@ -18,6 +18,7 @@ from io import BytesIO
 import json
 import os.path
 from subprocess import PIPE
+import textwrap
 
 from extras import try_import
 import subunit
@@ -136,18 +137,24 @@ class TestCommand(ResourcedTestCase):
             buffer = BytesIO()
             stream = subunit.StreamResultToBytes(buffer)
             stream.status(
-                test_id='return', test_status='exists', test_tags=['p1'])
+                test_id='return', test_status='exists', test_tags=set(['p1']))
+            subunit_bytes_1 = buffer.getvalue()
+            buffer = BytesIO()
+            stream = subunit.StreamResultToBytes(buffer)
             stream.status(
-                test_id='values', test_status='exists', test_tags=['p2'])
-            subunit_bytes = buffer.getvalue()
+                test_id='values', test_status='exists', test_tags=set(['p2']))
+            subunit_bytes_2 = buffer.getvalue()
         else:
-            subunit_bytes = _b('tags: p1\nreturn\ntags: -p1 p2\nvalues\n')
-        ui.proc_outputs = [subunit_bytes]
+            self.skip("no V1 test")
+        ui.proc_outputs = [_b('p1 p2'), subunit_bytes_2, subunit_bytes_1]
         self.setup_repo(cmd, ui)
-        self.set_config(
-            '[DEFAULT]\ntest_command=foo $LISTOPT $IDOPTION\n'
-            'test_id_option=--load-list $IDFILE\n'
-            'test_list_option=--list\n')
+        self.set_config(textwrap.dedent("""\
+            [DEFAULT]
+            test_command=foo $LISTOPT $IDOPTION $PROFILE
+            test_id_option=--load-list $IDFILE
+            test_list_option=--list
+            list_profiles=list_profiles
+            """))
         retcode = cmd.execute()
         expected_cmd = 'foo --list '
         expected_as_dict = {
@@ -156,9 +163,13 @@ class TestCommand(ResourcedTestCase):
             }
         expected_bytes = json.dumps(expected_as_dict, sort_keys=True)
         self.assertEqual([
-            ('values', [('running', expected_cmd)]),
-            ('popen', (expected_cmd,),
-             {'shell': True, 'stdout': PIPE, 'stdin': PIPE}),
+            ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('foo --list  p2'))]),
+            ('popen', (_u('foo --list  p2'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', _u('foo --list  p1'))]),
+            ('popen', (_u('foo --list  p1'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',),
             ('stream', expected_bytes),
             ], ui.outputs)

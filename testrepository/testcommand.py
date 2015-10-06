@@ -690,18 +690,21 @@ class TestCommand(Fixture):
     run_factory = TestListingFixture
     oldschool = False
 
-    def __init__(self, ui, repository):
+    def __init__(self, ui, repository, profiles=None):
         """Create a TestCommand.
 
         :param ui: A testrepository.ui.UI object which is used to obtain the
             location of the .testr.conf.
         :param repository: A testrepository.repository.Repository used for
             determining test times when partitioning tests.
+        :param profiles: If supplied, override the detection of profiles from
+            .testr.conf.
         """
         super(TestCommand, self).__init__()
         self.ui = ui
         self.repository = repository
         self._instance_cache = None
+        self._profiles = profiles
 
     def setUp(self):
         super(TestCommand, self).setUp()
@@ -720,7 +723,8 @@ class TestCommand(Fixture):
                 self.concurrency = local_concurrency()
             if not self.concurrency:
                 self.concurrency = 1
-        self.profiles = _list_profiles(self.get_parser(), self.ui)
+        self.profiles = (
+            self._profiles or _list_profiles(self.get_parser(), self.ui))
         self.default_profiles = _default_profiles(self.get_parser(), self.ui)
         if not self.profiles:
             # Default configuration

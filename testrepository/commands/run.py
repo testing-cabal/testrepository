@@ -365,7 +365,7 @@ class run(Command):
                 for proc in cmd.run_tests():
                     stream = ReturnCodeToSubunit(proc.run_proc)
                     run_procs.append(('subunit', stream))
-                options = {'profiles': ' '.join(profiles)}
+                options = {'profiles': ','.join(profiles)}
                 if (self.ui.options.failing or self.ui.options.analyze_isolation
                     or self.ui.options.isolated):
                     options['partial'] = True

@@ -210,14 +210,15 @@ class TestCommand(BaseTestCommand):
             ('summary', True, 0, -3, None, None, [('id', 1, None)]),
             ], ui.outputs)
 
-    def test_failing_one_profile_failed(self):
+    def test_failing_som_profiles_failed(self):
         # Setup the repository:
         # test_id p1 passes
         # test_id p2 failed
+        # test_id p3 failed
         # Run testr run --failing
-        # Should query profiles, and run just test_id in p2, nothing in p1.
+        # Should query profiles, and run just test_id in p2,p3 nothing in p1.
         ui, cmd = self.get_test_ui_and_cmd()
-        profiles = _b('p1 p2')
+        profiles = _b('p1 p2 p3')
         ui, cmd = self.get_test_ui_and_cmd(options=[('failing', True),],
             proc_outputs=[profiles])
         cmd.repository_factory = memory.RepositoryFactory()
@@ -230,6 +231,9 @@ class TestCommand(BaseTestCommand):
         inserter.status(
             test_id='test_id', test_status='fail',
             test_tags=set(['p2']))
+        inserter.status(
+            test_id='test_id', test_status='fail',
+            test_tags=set(['p3']))
         inserter.stopTestRun()
         config_text = textwrap.dedent("""\
             [DEFAULT]
@@ -248,34 +252,20 @@ class TestCommand(BaseTestCommand):
             ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',),
             ('results', Wildcard),
-            ('summary', True, 0, -2, None, None, [('id', 1, None)]),
+            ('summary', True, 0, -3, None, None, [('id', 1, None)]),
             ], ui.outputs)
         expected_ids = {
-            'test_id': {'profiles': ['p2']},
+            'test_id': {'profiles': ['p2', 'p3']},
             }
         self.assertEqual([[Wildcard, expected_ids, [], None]], params)
 
     def test_passes_profiles_to_load(self):
-        # Setup the repository:
-        # test_id p1 passes
-        # test_id p2 failed
-        # Run testr run --failing
-        # Should query profiles, and run just test_id in p2, nothing in p1.
-        ui, cmd = self.get_test_ui_and_cmd()
-        profiles = _b('p1')
-        if v2_avail:
-            buffer = BytesIO()
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(
-                test_id='test_id', test_status='success',
-                test_tags=set(['p1']))
-            subunit_bytes = buffer.getvalue()
-        else:
-            subunit_bytes = b'tags: p1\ntest: test_id\success: foo\n'
+        # Should query profiles, and pass all potential profiles in.
+        profiles = _b('p1 p2 p3')
         ui, cmd = self.get_test_ui_and_cmd(
-            proc_outputs=[profiles, subunit_bytes])
+            proc_outputs=[profiles])
         cmd.repository_factory = memory.RepositoryFactory()
-        cmd.repository_factory.initialise(ui.here)
+        repo = cmd.repository_factory.initialise(ui.here)
         config_text = textwrap.dedent("""\
             [DEFAULT]
             test_command=foo $IDOPTION
@@ -285,7 +275,7 @@ class TestCommand(BaseTestCommand):
         self.set_config(config_text)
         class load(Command):
             def __init__(_self, ui):
-                self.assertEqual({'profiles': 'p1'}, ui._options)
+                self.assertEqual({'profiles': 'p1,p2,p3'}, ui._options)
             def execute(self):
                 return 0
         self.useFixture(MonkeyPatch('testrepository.commands.run.load', load))
@@ -294,6 +284,12 @@ class TestCommand(BaseTestCommand):
         self.assertEqual([
             ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
             ('communicate',),
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
             ('values', [('running', expected_cmd)]),
             ('popen', (expected_cmd,),
              {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),

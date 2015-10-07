@@ -164,7 +164,15 @@ class run(Command):
             if test_dict['status'] == 'fail':
                 test_profiles = test_dict['tags'].intersection(
                     profiles)
-                ids[test_dict['id']] = {'profiles': sorted(test_profiles)}
+                test_id = test_dict['id']
+                if test_id not in ids:
+                    meta = {'profiles': []}
+                    ids[test_id] = meta
+                else:
+                    meta = ids[test_id]
+                test_profiles = profiles.intersection(test_dict['tags'])
+                meta['profiles'] = sorted(
+                    test_profiles.union(meta['profiles']))
         result = testtools.StreamToDict(gather_errors)
         result.startTestRun()
         try:
@@ -365,7 +373,7 @@ class run(Command):
                 for proc in cmd.run_tests():
                     stream = ReturnCodeToSubunit(proc.run_proc)
                     run_procs.append(('subunit', stream))
-                options = {'profiles': ','.join(profiles)}
+                options = {'profiles': ','.join(sorted(profiles))}
                 if (self.ui.options.failing or self.ui.options.analyze_isolation
                     or self.ui.options.isolated):
                     options['partial'] = True

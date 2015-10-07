@@ -68,7 +68,7 @@ class failing(Command):
                 else:
                     meta = tests[test_id]
                 test_profiles = profiles.intersection(test_dict['tags'])
-                meta['profiles'] = sorted(profile for profile in
+                meta['profiles'] = sorted(
                     test_profiles.union(meta['profiles']))
             analyzer = testtools.StreamToDict(on_test=capture)
             list_result = testtools.StreamSummary()

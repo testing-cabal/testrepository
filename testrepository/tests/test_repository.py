@@ -593,6 +593,10 @@ class TestRepositoryContract(ResourcedTestCase):
             timestamp=now)
         result.stopTestRun()
         analyzed = self.get_failing_list(repo)
+        # Note - this fails sporadically on pypy3 w/file repo on a differing
+        # microsecond! (Odd with a fixed timestamp, but there you are) - I
+        # think the migration of the repo to v2 will fix this, thus tolerating
+        # it for now.
         self.assertEqual([{'details': {},
             'id': 'testid',
             'status': 'fail',
@@ -673,7 +677,7 @@ class TestRepositoryContract(ResourcedTestCase):
             timestamp=now)
         result.stopTestRun()
         analyzed = self.get_failing_list(repo)
-        analyzed.sort(key=lambda d:list(d['tags']))
+        analyzed.sort(key=lambda d:sorted(d['tags']))
         self.assertEqual([
             {'details': {},
              'id': 'testid',

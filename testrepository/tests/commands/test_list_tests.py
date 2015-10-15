@@ -24,7 +24,7 @@ from extras import try_import
 import subunit
 v2_avail = try_import('subunit.ByteStreamToStreamResult')
 from testtools.compat import _b, _u
-from testtools.matchers import MatchesException
+from testtools.matchers import AnyMatch, Equals, MatchesException
 
 from testrepository.commands import list_tests
 from testrepository.ui.model import UI
@@ -139,13 +139,11 @@ class TestCommand(ResourcedTestCase):
         if v2_avail:
             buffer = BytesIO()
             stream = subunit.StreamResultToBytes(buffer)
-            stream.status(
-                test_id='return', test_status='exists', test_tags=set(['p1']))
+            stream.status(test_id='return', test_status='exists')
             subunit_bytes_1 = buffer.getvalue()
             buffer = BytesIO()
             stream = subunit.StreamResultToBytes(buffer)
-            stream.status(
-                test_id='values', test_status='exists', test_tags=set(['p2']))
+            stream.status(test_id='values', test_status='exists')
             subunit_bytes_2 = buffer.getvalue()
         else:
             self.skip("no V1 test")
@@ -165,16 +163,30 @@ class TestCommand(ResourcedTestCase):
             'values': {'profiles': ['p2']},
             }
         expected_bytes = json.dumps(expected_as_dict, sort_keys=True).encode('utf8')
-        self.assertEqual([
-            ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
-            ('communicate',),
-            ('values', [('running', _u('foo --list  p2'))]),
-            ('popen', (_u('foo --list  p2'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
-            ('communicate',),
-            ('values', [('running', _u('foo --list  p1'))]),
-            ('popen', (_u('foo --list  p1'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
-            ('communicate',),
-            ('tests_meta',
-             {'return': {'profiles': ['p1']}, 'values': {'profiles': ['p2']}}, 'json'),
-            ], ui.outputs)
+        self.expectThat((
+                [
+                ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ('values', [('running', _u('foo --list  p1'))]),
+                ('popen', (_u('foo --list  p1'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ('values', [('running', _u('foo --list  p2'))]),
+                ('popen', (_u('foo --list  p2'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ('tests_meta',
+                 {'return': {'profiles': ['p2']}, 'values': {'profiles': ['p1']}}, 'json'),
+                ],
+                [
+                ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ('values', [('running', _u('foo --list  p2'))]),
+                ('popen', (_u('foo --list  p2'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ('values', [('running', _u('foo --list  p1'))]),
+                ('popen', (_u('foo --list  p1'),), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ('tests_meta',
+                 {'return': {'profiles': ['p1']}, 'values': {'profiles': ['p2']}}, 'json'),
+                ]),
+            AnyMatch(Equals(ui.outputs)))
         self.assertEqual(0, retcode)

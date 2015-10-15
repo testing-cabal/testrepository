@@ -48,7 +48,12 @@ class Cache:
         :param profile: The profile to allocate for.
         :return: An Instance.
         """
-        instance = self._available[profile].pop()
+        # Pick the same ones first consistently for two reasons.
+        # Firstly, deterministic testing is much nicer.
+        # Secondly, it means we re-use the same instance by preference which
+        # may add some block cache hits.
+        instance = sorted(self._available[profile])[0]
+        self._available[profile].remove(instance)
         self._allocated[profile].add(instance)
         return instance
 

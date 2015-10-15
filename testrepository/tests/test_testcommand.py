@@ -456,8 +456,8 @@ class TestTestCommand(ResourcedTestCase):
             ('values', [('running', 'provision -c 2')]),
             ('popen', ('provision -c 2',), {'shell': True, 'stdout': -1}),
             ('communicate',),
-            ('values', [('running', _u('quux I4 P2 -- foo --list '))]),
-            ('popen', (_u('quux I4 P2 -- foo --list '),), {'shell': True, 'stdin': -1, 'stdout': -1}), ('communicate',)
+            ('values', [('running', _u('quux I3 P2 -- foo --list '))]),
+            ('popen', (_u('quux I3 P2 -- foo --list '),), {'shell': True, 'stdin': -1, 'stdout': -1}), ('communicate',)
             ]))
 
     def test_list_tests_multiple_profiles_no_environments(self):
@@ -696,7 +696,7 @@ class TestTestCommand(ResourcedTestCase):
             ui.outputs)
         # No --parallel, so the one instance should have been allocated.
         self.assertEqual(1, command._instance_cache.size('DEFAULT'))
-        self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
+        self.assertRaises(Exception, command._instance_cache.allocate, 'DEFAULT')
         # And after the process is run, bar is returned for re-use.
         procs[0].run_proc.stdout.read()
         procs[0].run_proc.wait()
@@ -723,14 +723,14 @@ class TestTestCommand(ResourcedTestCase):
             ui.outputs)
         # No --parallel, so the one instance should have been allocated.
         self.assertEqual(2, command._instance_cache.size('DEFAULT'))
-        self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
+        self.assertRaises(Exception, command._instance_cache.allocate, 'DEFAULT')
         # And after the process is run, bar is returned for re-use.
         procs[0].run_proc.wait()
         procs[0].run_proc.stdout.read()
         self.assertEqual(0, procs[0].run_proc.returncode)
         self.assertEqual(2, command._instance_cache.size('DEFAULT'))
         self.assertEqual(Instance('DEFAULT', 'bar'), command._instance_cache.allocate('DEFAULT'))
-        self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
+        self.assertRaises(Exception, command._instance_cache.allocate, 'DEFAULT')
 
     def test_run_tests_list_file_in_FILES(self):
         self.set_config(
@@ -750,7 +750,7 @@ class TestTestCommand(ResourcedTestCase):
             ui.outputs)
         # No --parallel, so the one instance should have been allocated.
         self.assertEqual(1, command._instance_cache.size('DEFAULT'))
-        self.assertRaises(KeyError, command._instance_cache.allocate, 'DEFAULT')
+        self.assertRaises(Exception, command._instance_cache.allocate, 'DEFAULT')
         # And after the process is run, bar is returned for re-use.
         procs[0].run_proc.stdout.read()
         procs[0].run_proc.wait()

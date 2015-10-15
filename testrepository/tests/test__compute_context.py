@@ -91,9 +91,9 @@ class TestCache(ResourcedTestCase):
         self.assertEqual(2, cache.size('p2'))
 
     def test_allocate_empty(self):
-        self.assertRaises(KeyError, Cache().allocate, 'p1')
+        self.assertRaises(Exception, Cache().allocate, 'p1')
 
     def test_allocate_profile_empty(self):
         c = Cache()
         c.add(Instance('p1', '1'))
-        self.assertRaises(KeyError, c.allocate, 'p2')
+        self.assertRaises(Exception, c.allocate, 'p2')

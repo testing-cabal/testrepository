@@ -28,12 +28,14 @@ function start {
 }
 
 profile=$1
+count=$2
 if [ "$profile" = "DEFAULT" ]; then
   # Nothing to do.
-  echo 1
+  for i in $(seq 1 $count); do
+    echo -n " $i"
+  done
   exit 0
 fi
-count=$2
 container $profile
 # We use one container
 start $host

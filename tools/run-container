@@ -16,11 +16,6 @@ function container {
 profile=$1
 instance=$2
 shift 2
-if [ "$profile" = "DEFAULT" ]; then
-  # Nothing to do - we're local.
-  exec $@
-fi
-container $profile
 files=
 # accumulate files to copy
 while [ "--" != "$1" ]; do
@@ -28,6 +23,11 @@ while [ "--" != "$1" ]; do
   shift ;
 done
 shift # --
+if [ "$profile" = "DEFAULT" ]; then
+  # Nothing to do - we're local.
+  exec $@
+fi
+container $profile
 echo copying $files to node.
 for f in $files; do
   rsync $f $host:$(dirname $f) ;

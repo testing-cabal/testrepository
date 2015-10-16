@@ -24,7 +24,7 @@ function start {
     sudo lxc-start -d -n $host 1>2
     sudo lxc-wait -n $host -s RUNNING -t 2 1>2
   fi
-  ssh $host "cd $PWD && ~/.virtualenvs/testrepository-$profile-$host/bin/pip -q install -e .[test] && ~/.virtualenvs/testrepository-$profile-$host/bin/pip uninstall -y testrepository" 1>&2
+  ssh $host "make --no-print-directory -C $PWD venv=~/.virtualenvs/testrepository-$profile-$host install-for-test" 1>&2
 }
 
 profile=$1

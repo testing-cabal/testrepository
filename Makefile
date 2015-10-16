@@ -33,4 +33,12 @@ release:
 README.rst: editable testrepository/commands/quickstart.py
 	./testr quickstart > $@
 
-.PHONY: check check-xml editable release all
+${venv}/testr-installed-stamp: requirements.txt setup.cfg
+	${venv}/bin/pip -q install -e .[test]
+	touch ${venv}/testr-installed-stamp
+
+
+install-for-test: ${venv}/testr-installed-stamp
+	@#  nothing
+
+.PHONY: check check-xml editable install-for-test release all

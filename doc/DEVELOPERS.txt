@@ -47,6 +47,16 @@ configuration is needed - creating virtualenvs with names that inform the
 tools of the container name to use. The profile 'DEFAULT' will bypass the
 container glue and run in the local environment.
 
+Specifically, the current scripts assume virtualenvs in ~/.virtualenvs (like
+virtualenv-wrappers creates), and a name of testrepository-$profile-hostname,
+with 'ssh hostname' being something that works.
+
+So to run the full test matrix for testrepository, create one lxc container
+for each Linux distribution you need in order to have Python 2.6, 2.7, 3.2,
+3.3, 3.4, 3.5, cpython(e.g. master), pypy and pypy3, and then create one
+virtualenv for each of the versions to test in ~/.virtualenvs, named
+testrepository-$version-$lxchostname. Finally, run `testr run`.
+
 Diagnosing issues
 -----------------
 

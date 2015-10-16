@@ -13,18 +13,13 @@ function container {
   return 0
 }
 
-function start {
-  local host=$1
-  local state=$(sudo lxc-info -s -H -n $host)
-  if [ "RUNNING" != "$state" ]; then
-    sudo lxc-start -d -n $host
-    sudo lxc-wait -n $host -s RUNNING -t 2
-  fi
-}
-
 profile=$1
 instance=$2
 shift 2
+if [ "$profile" = "DEFAULT" ]; then
+  # Nothing to do - we're local.
+  exec $@
+fi
 container $profile
 files=
 # accumulate files to copy

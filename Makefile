@@ -21,7 +21,8 @@ editable:
 	./testr init
 
 check: editable .testrepository
-	./testr run --parallel
+	# Run without containers/multiple profiles by default.
+	./testr run --parallel -p DEFAULT
 
 check-xml:
 	python -m subunit.run testrepository.tests.test_suite | subunit2junitxml -o test.xml -f | subunit2pyunit

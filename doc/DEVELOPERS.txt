@@ -39,7 +39,13 @@ Running the tests
 
 Generally just ``make`` is all that is needed to run all the tests. However
 if dropping into pdb, it is currently more convenient to use
-``python -m testtools.run testrepository.tests.test_suite``.
+``python -m testtools.run discover``.
+
+The tools in ``tools/`` can run up lxc containers to run different versions of
+Python transparently using the in-built profile support. Some local
+configuration is needed - creating virtualenvs with names that inform the
+tools of the container name to use. The profile 'DEFAULT' will bypass the
+container glue and run in the local environment.
 
 Diagnosing issues
 -----------------

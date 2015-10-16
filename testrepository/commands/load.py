@@ -75,7 +75,7 @@ class load(Command):
         optparse.Option("--full-results", action="store_true",
             default=False,
             help="No-op - deprecated and kept only for backwards compat."),
-        optparse.Option("--profiles",
+        optparse.Option("-p", "--profiles",
             help="Comma separated list of profiles that may be present in the "
                  "stream. By default the list_profiles hook in testr.conf is "
                  "queried.",

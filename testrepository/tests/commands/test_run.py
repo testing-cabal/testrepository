@@ -210,7 +210,7 @@ class TestCommand(BaseTestCommand):
             ('summary', True, 0, -3, None, None, [('id', 1, None)]),
             ], ui.outputs)
 
-    def test_failing_som_profiles_failed(self):
+    def test_failing_some_profiles_failed(self):
         # Setup the repository:
         # test_id p1 passes
         # test_id p2 failed
@@ -292,6 +292,38 @@ class TestCommand(BaseTestCommand):
              {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
             ('values', [('running', expected_cmd)]),
             ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ], ui.outputs)
+
+    def test_explicit_profiles(self):
+        # Should query profiles, and pass all potential profiles in.
+        profiles = _b('p1 p2 p3')
+        ui, cmd = self.get_test_ui_and_cmd(
+            options=[('profiles', 'p1,p2')],
+            proc_outputs=[profiles])
+        cmd.repository_factory = memory.RepositoryFactory()
+        repo = cmd.repository_factory.initialise(ui.here)
+        config_text = textwrap.dedent("""\
+            [DEFAULT]
+            test_command=foo $IDOPTION $PROFILE
+            test_id_option=--load-list $IDFILE
+            list_profiles=list_profiles
+            """)
+        self.set_config(config_text)
+        class load(Command):
+            def __init__(_self, ui):
+                self.assertEqual({'profiles': 'p1,p2'}, ui._options)
+            def execute(self):
+                return 0
+        self.useFixture(MonkeyPatch('testrepository.commands.run.load', load))
+        self.expectThat(cmd.execute(), Equals(0))
+        expected_cmd = 'foo '
+        self.assertEqual([
+            ('values', [('running', 'foo  p1')]),
+            ('popen', ('foo  p1',),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ('values', [('running', 'foo  p2')]),
+            ('popen', ('foo  p2',),
              {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
             ], ui.outputs)
 

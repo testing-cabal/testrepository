@@ -525,7 +525,7 @@ class TestListingFixture(Fixture):
         if '$LISTOPT' not in self.template:
             raise ValueError("LISTOPT not configured in .testr.conf")
         result = {}
-        for profile in profiles:
+        for profile in sorted(profiles):
             ids = self._list_tests(profile)
             for test_id in ids:
                 meta = result.get(test_id)
@@ -575,7 +575,7 @@ class TestListingFixture(Fixture):
         :return: A list of spawned processes.
         """
         result = []
-        for profile in self._instance_source.default_profiles:
+        for profile in sorted(self._instance_source.default_profiles):
             if self.test_ids is not None:
                 profile_tests = _profile_tests(self.test_ids, profile)
             else:

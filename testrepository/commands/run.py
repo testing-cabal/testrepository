@@ -20,13 +20,14 @@ import optparse
 import re
 
 from extras import try_import
+import six
 import subunit
 v2_avail = try_import('subunit.ByteStreamToStreamResult')
 import testtools
 from testtools import (
     TestByTestResult,
     )
-from testtools.compat import _b
+from testtools.compat import _b, _u
 
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
@@ -150,6 +151,11 @@ class run(Command):
         optparse.Option("--isolated", action="store_true",
             default=False,
             help="Run each test id in a separate test runner."),
+        optparse.Option("-p", "--profiles",
+            help="Comma separated list of profiles that may be present in the "
+                 "stream. By default the list_profiles hook in testr.conf is "
+                 "queried.",
+            default=""),
         ]
     args = [StringArgument('testfilters', 0, None), DoubledashArgument(),
         StringArgument('testargs', 0, None)]
@@ -187,7 +193,13 @@ class run(Command):
             filters = self.ui.arguments['testfilters']
         else:
             filters = None
-        testcommand = self.command_factory(self.ui, repo)
+        profiles = self.ui.options.profiles
+        if not isinstance(profiles, six.text_type):
+            profiles = profiles.decode('utf8')
+        profiles = profiles.split(_u(','))
+        if profiles == ['']:
+            profiles = None
+        testcommand = self.command_factory(self.ui, repo, profiles=profiles)
         testcommand.setUp()
         try:
             if self.ui.options.failing or self.ui.options.analyze_isolation:

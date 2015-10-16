@@ -47,8 +47,8 @@ from testrepository.tests.test_repository import run_timed
 
 class FakeTestCommand(TestCommand):
 
-    def __init__(self, ui, repo):
-        TestCommand.__init__(self, ui, repo)
+    def __init__(self, ui, repo, profiles=None):
+        TestCommand.__init__(self, ui, repo, profiles=profiles)
         self.oldschool = True
 
 

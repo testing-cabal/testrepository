@@ -262,6 +262,29 @@ any caching, but the callout pattern is intended to facilitate external
 caching - the provisioning callout can be used to pull environments out of
 a cache, and the dispose to just return it to the cache.
 
+Randomizing test order
+~~~~~~~~~~~~~~~~~~~~~~
+
+Occasionally tests might succeed or fail based on their execution order due to imperfect test isolation. The default parallel scheduler does not guarantee constant execution order nor effective shuffling.
+
+The ``--randomize`` option provides reproducible shuffling. Testr guarantees that tests will be executed in the same order even across different hosts as long as the following parameters remain the same:
+
+ * set of tests
+ * concurrency value
+ * randomize-seed value
+
+Any variation in the parameters changes the tests order completely.
+Enable randomization using::
+
+  $ ./testr run --parallel --concurrency=8 --randomize
+
+Optionally specify the seed value using::
+
+  $ ./testr run --parallel --concurrency=8 --randomize --randomize-seed 42
+
+If not specified, a random seed is chosen. The seed value is used only for the test shuffling and does not alter Python's random number generator.
+
+
 Configuring environment support
 -------------------------------
 

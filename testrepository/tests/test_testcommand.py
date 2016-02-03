@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -34,7 +34,7 @@ from testtools.testresult.doubles import ExtendedTestResult
 from testrepository.commands import run
 from testrepository.ui.model import UI
 from testrepository.repository import memory
-from testrepository.testcommand import TestCommand
+from testrepository.testcommand import TestCommand, TestListingFixture
 from testrepository.tests import ResourcedTestCase, Wildcard
 from testrepository.tests.stubpackage import TempDirResource
 from testrepository.tests.test_repository import run_timed
@@ -421,6 +421,40 @@ class TestTestCommand(ResourcedTestCase):
         if 'testdir.testfile.TestCase5.test' not in partitions[0]:
             self.assertTrue('testdir.testfile.TestCase5.test' in partitions[1])
 
+    def test_pseudorandom_partition_tests_empty(self):
+        test_ids = frozenset()
+        partitions = TestListingFixture.pseudorandom_partition_tests(
+            test_ids, 2, 42)
+        self.assertEqual([[], []], partitions)
+
+    def test_pseudorandom_partition_few(self):
+        # Some partitions will be empty
+        test_ids = frozenset(("t%d" % i for i in range(3)))
+        partitions = TestListingFixture.pseudorandom_partition_tests(
+            test_ids, 5, 42)
+        self.assertEqual(
+            [['t2'], ['t0'], ['t1'], [], []],
+            partitions
+        )
+        self.assertEqual(len(test_ids), sum(len(p) for p in partitions))
+
+    def test_pseudorandom_partition_tests(self):
+        test_ids = frozenset(("t%d" % i for i in range(10)))
+        partitions = TestListingFixture.pseudorandom_partition_tests(
+            test_ids, 2, 42)
+        self.assertEqual(
+            [['t9', 't8', 't3', 't1', 't0'], ['t7', 't5', 't4', 't2', 't6']],
+            partitions
+        )
+        self.assertEqual(len(test_ids), sum(len(p) for p in partitions))
+
+    def test_pseudorandom_partition_tests_no_seed(self):
+        # Do not set a random seed
+        test_ids = frozenset(("t%d" % i for i in range(10)))
+        partitions = TestListingFixture.pseudorandom_partition_tests(
+            test_ids, 2, None)
+        self.assertEqual(len(test_ids), sum(len(p) for p in partitions))
+
     def test_run_tests_with_instances(self):
         # when there are instances and no instance_execute, run_tests acts as
         # normal.
@@ -459,7 +493,7 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual(0, procs[0].returncode)
         self.assertEqual(set([_b('bar')]), command._instances)
         self.assertEqual(set(), command._allocated_instances)
-        
+
     def test_run_tests_allocated_instances_skipped(self):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(

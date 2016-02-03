@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -25,6 +25,7 @@ import io
 import itertools
 import operator
 import os.path
+import random
 import re
 import subprocess
 import sys
@@ -96,7 +97,7 @@ testrconf_help = dedent("""
 
 class CallWhenProcFinishes(object):
     """Convert a process object to trigger a callback when returncode is set.
-    
+
     This just wraps the entire object and when the returncode attribute access
     finds a set value, calls the callback.
     """
@@ -224,6 +225,13 @@ class TestListingFixture(Fixture):
                 self.concurrency = self.local_concurrency()
             if not self.concurrency:
                 self.concurrency = 1
+        try:
+            self.randomize = self.ui.options.randomize
+            self.randomize_seed = self.ui.options.randomize_seed
+        except AttributeError:
+            self.randomize = False
+            self.randomize_seed = None
+
         if self.test_ids is None:
             if self.concurrency == 1:
                 if default_idstr:
@@ -274,7 +282,7 @@ class TestListingFixture(Fixture):
 
     def filter_tests(self, test_ids):
         """Filter test_ids by the test_filters.
-        
+
         :return: A list of test ids.
         """
         if self.test_filters is None:
@@ -318,7 +326,7 @@ class TestListingFixture(Fixture):
 
     def _per_instance_command(self, cmd):
         """Customise cmd to with an instance-id.
-        
+
         :param concurrency: The number of instances to ask for (used to avoid
             death-by-1000 cuts of latency.
         """
@@ -367,7 +375,13 @@ class TestListingFixture(Fixture):
                     lambda:self._instance_source.release_instance(instance))]
             else:
                 return [run_proc]
-        test_id_groups = self.partition_tests(test_ids, self.concurrency)
+
+        if not self.randomize:
+            test_id_groups = self.partition_tests(test_ids, self.concurrency)
+        else:
+            test_id_groups = self.pseudorandom_partition_tests(
+                test_ids, self.concurrency, self.randomize_seed)
+
         for test_ids in test_id_groups:
             if not test_ids:
                 # No tests in this partition
@@ -384,7 +398,7 @@ class TestListingFixture(Fixture):
 
         Test durations from the repository are used to get partitions which
         have roughly the same expected runtime. New tests - those with no
-        recorded duration - are allocated in round-robin fashion to the 
+        recorded duration - are allocated in round-robin fashion to the
         partitions created using test durations.
 
         :return: A list where each element is a distinct subset of test_ids,
@@ -439,10 +453,26 @@ class TestListingFixture(Fixture):
         consume_queue(timed)
         consume_queue(partial)
         # Assign groups with entirely unknown times in round robin fashion to
-        # the partitions. 
+        # the partitions.
         for partition, group_id in zip(itertools.cycle(partitions), unknown):
             partition.extend(group_ids[group_id])
         return partitions
+
+    @staticmethod
+    def pseudorandom_partition_tests(test_ids, concurrency, seed):
+        """Partition tests pseudorandomly
+        Multiple runs with the same arguments will return the same partitioning
+        See GitHub issue #20
+        """
+        tests = sorted(test_ids)
+        if seed is None:
+            seed = random.randint(0, sys.maxsize)
+        print("Randomizing test order using seed: %d" % seed)
+        state = random.getstate()
+        random.seed(seed)
+        random.shuffle(tests)
+        random.setstate(state)
+        return [tests[i::concurrency] for i in range(concurrency)]
 
     def callout_concurrency(self):
         """Callout for user defined concurrency."""
@@ -470,7 +500,7 @@ class TestListingFixture(Fixture):
 
 class TestCommand(Fixture):
     """Represents the test command defined in .testr.conf.
-    
+
     :ivar run_factory: The fixture to use to execute a command.
     :ivar oldschool: Use failing.list rather than a unique file path.
 
@@ -480,7 +510,7 @@ class TestCommand(Fixture):
     happens. This is not done per-run-command, because test bisection (amongst
     other things) uses multiple get_run_command configurations.
     """
-    
+
     run_factory = TestListingFixture
     oldschool = False
 
@@ -536,7 +566,7 @@ class TestCommand(Fixture):
 
     def get_run_command(self, test_ids=None, testargs=(), test_filters=None):
         """Get the command that would be run to run tests.
-        
+
         See TestListingFixture for the definition of test_ids and test_filters.
         """
         if self._instances is None:
@@ -604,7 +634,7 @@ class TestCommand(Fixture):
 
     def obtain_instance(self, concurrency):
         """If possible, get one or more test run environment instance ids.
-        
+
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """

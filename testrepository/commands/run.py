@@ -146,6 +146,10 @@ class run(Command):
         optparse.Option("--isolated", action="store_true",
             default=False,
             help="Run each test id in a separate test runner."),
+        optparse.Option("--randomize", action="store_true", default=False,
+                        help="Randomize tests order"),
+        optparse.Option("--randomize-seed", action="store", type="int",
+                        default=None, help="Randomization seed"),
         ]
     args = [StringArgument('testfilters', 0, None), DoubledashArgument(),
         StringArgument('testargs', 0, None)]

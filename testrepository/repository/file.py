@@ -69,8 +69,9 @@ class RepositoryFactory(AbstractRepositoryFactory):
             if e.errno == errno.ENOENT:
                 raise RepositoryNotFound(url)
             raise
-        if '1\n' != stream.read():
-            raise ValueError(url)
+        with stream:
+            if '1\n' != stream.read():
+                raise ValueError(url)
         return Repository(base)
 
 
@@ -99,7 +100,8 @@ class Repository(AbstractRepository):
         return value
 
     def _next_stream(self):
-        next_content = open(os.path.join(self.base, 'next-stream'), 'rt').read()
+        with open(os.path.join(self.base, 'next-stream'), 'rt') as fp:
+            next_content = fp.read()
         try:
             return int(next_content)
         except ValueError:
@@ -116,8 +118,8 @@ class Repository(AbstractRepository):
  
     def get_failing(self):
         try:
-            run_subunit_content = open(
-                os.path.join(self.base, "failing"), 'rb').read()
+            with open( os.path.join(self.base, "failing"), 'rb') as fp:
+                run_subunit_content = fp.read()
         except IOError:
             err = sys.exc_info()[1]
             if err.errno == errno.ENOENT:
@@ -128,8 +130,8 @@ class Repository(AbstractRepository):
 
     def get_test_run(self, run_id):
         try:
-            run_subunit_content = open(
-                os.path.join(self.base, str(run_id)), 'rb').read()
+            with open( os.path.join(self.base, str(run_id)), 'rb') as fp:
+                run_subunit_content = fp.read()
         except IOError as e:
             if e.errno == errno.ENOENT:
                 raise KeyError("No such run.")

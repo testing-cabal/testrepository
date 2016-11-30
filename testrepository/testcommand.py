@@ -189,6 +189,7 @@ class TestListingFixture(Fixture):
         self.parallel = parallel
         self._listpath = listpath
         self._parser = parser
+        self._option = lambda x: self._parser.get(repository._profile, x)
         self.test_filters = test_filters
         self._group_callback = group_callback
         self._instance_source = instance_source
@@ -200,12 +201,12 @@ class TestListingFixture(Fixture):
         list_variables = {'LISTOPT': self.listopt}
         cmd = self.template
         try:
-            default_idstr = self._parser.get('DEFAULT', 'test_id_list_default')
+            default_idstr = self._option('test_id_list_default')
             list_variables['IDLIST'] = default_idstr
             # In theory we should also support casting this into IDFILE etc -
             # needs this horrible class refactored.
         except ConfigParser.NoOptionError as e:
-            if e.message != "No option 'test_id_list_default' in section: 'DEFAULT'":
+            if "No option 'test_id_list_default'" not in e.message:
                 raise
             default_idstr = None
         def list_subst(match):
@@ -327,8 +328,7 @@ class TestListingFixture(Fixture):
         instance = self._instance_source.obtain_instance(self.concurrency)
         if instance is not None:
             try:
-                instance_prefix = self._parser.get(
-                    'DEFAULT', 'instance_execute')
+                instance_prefix = self._option('instance_execute')
                 variables = {
                     'INSTANCE_ID': instance.decode('utf8'),
                     'COMMAND': cmd,
@@ -447,8 +447,7 @@ class TestListingFixture(Fixture):
     def callout_concurrency(self):
         """Callout for user defined concurrency."""
         try:
-            concurrency_cmd = self._parser.get(
-                'DEFAULT', 'test_run_concurrency')
+            concurrency_cmd = self._option('test_run_concurrency')
         except ConfigParser.NoOptionError:
             return None
         run_proc = self.ui.subprocess_Popen(concurrency_cmd, shell=True,
@@ -495,6 +494,7 @@ class TestCommand(Fixture):
         super(TestCommand, self).__init__()
         self.ui = ui
         self.repository = repository
+        self._option = lambda x: self.get_parser().get(repository._profile, x)
         self._instances = None
         self._allocated_instances = None
 
@@ -511,7 +511,7 @@ class TestCommand(Fixture):
         self._instances = None
         self._allocated_instances = None
         try:
-            dispose_cmd = self.get_parser().get('DEFAULT', 'instance_dispose')
+            dispose_cmd = self._option('instance_dispose')
         except (ValueError, ConfigParser.NoOptionError):
             return
         variable_regex = '\$INSTANCE_IDS'
@@ -542,34 +542,19 @@ class TestCommand(Fixture):
         if self._instances is None:
             raise TypeError('TestCommand not setUp')
         parser = self.get_parser()
-        try:
-            command = parser.get('DEFAULT', 'test_command')
-        except ConfigParser.NoOptionError as e:
-            if e.message != "No option 'test_command' in section: 'DEFAULT'":
-                raise
-            raise ValueError("No test_command option present in .testr.conf")
+        command = self._option('test_command')
         elements = [command] + list(testargs)
         cmd = ' '.join(elements)
         idoption = ''
         if '$IDOPTION' in command:
             # IDOPTION is used, we must have it configured.
-            try:
-                idoption = parser.get('DEFAULT', 'test_id_option')
-            except ConfigParser.NoOptionError as e:
-                if e.message != "No option 'test_id_option' in section: 'DEFAULT'":
-                    raise
-                raise ValueError("No test_id_option option present in .testr.conf")
+            idoption = self._option('test_id_option')
         listopt = ''
         if '$LISTOPT' in command:
             # LISTOPT is used, test_list_option must be configured.
-            try:
-                listopt = parser.get('DEFAULT', 'test_list_option')
-            except ConfigParser.NoOptionError as e:
-                if e.message != "No option 'test_list_option' in section: 'DEFAULT'":
-                    raise
-                raise ValueError("No test_list_option option present in .testr.conf")
+            listopt = self._option('test_list_option')
         try:
-            group_regex = parser.get('DEFAULT', 'group_regex')
+            group_regex = self._option('group_regex')
         except ConfigParser.NoOptionError:
             group_regex = None
         if group_regex:
@@ -593,11 +578,10 @@ class TestCommand(Fixture):
         return result
 
     def get_filter_tags(self):
-        parser = self.get_parser()
         try:
-            tags = parser.get('DEFAULT', 'filter_tags')
+            tags = self._option('filter_tags')
         except ConfigParser.NoOptionError as e:
-            if e.message != "No option 'filter_tags' in section: 'DEFAULT'":
+            if "No option 'filter_tags'" not in e.message:
                 raise
             return set()
         return set([tag.strip() for tag in tags.split()])
@@ -610,7 +594,7 @@ class TestCommand(Fixture):
         """
         while len(self._instances) < concurrency:
             try:
-                cmd = self.get_parser().get('DEFAULT', 'instance_provision')
+                cmd = self._option('instance_provision')
             except ConfigParser.NoOptionError:
                 # Instance allocation not configured
                 return None

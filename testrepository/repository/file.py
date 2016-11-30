@@ -56,7 +56,7 @@ class RepositoryFactory(AbstractRepositoryFactory):
             stream.write('1\n')
         finally:
             stream.close()
-        result = Repository(base)
+        result = Repository(base, self._profile)
         result._write_next_stream(0)
         return result
 
@@ -71,7 +71,7 @@ class RepositoryFactory(AbstractRepositoryFactory):
             raise
         if '1\n' != stream.read():
             raise ValueError(url)
-        return Repository(base)
+        return Repository(base, self._profile)
 
 
 class Repository(AbstractRepository):
@@ -85,12 +85,13 @@ class Repository(AbstractRepository):
     likely to have an automatic upgrade process.
     """
 
-    def __init__(self, base):
+    def __init__(self, base, profile):
         """Create a file-based repository object for the repo at 'base'.
 
         :param base: The path to the repository.
         """
         self.base = base
+        self._profile = profile
     
     def _allocate(self):
         # XXX: lock the file. K?!

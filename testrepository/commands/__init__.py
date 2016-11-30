@@ -33,7 +33,7 @@ needed in that directory.)
 """
 
 from inspect import getdoc
-from optparse import OptionParser
+import optparse
 import os
 import sys
 
@@ -139,6 +139,7 @@ class Command(object):
         """
         if not self.ui.set_command(self):
             return 1
+        self.repository_factory._profile = self.ui.options.profile
         try:
             result = self.run()
         except Exception:
@@ -201,7 +202,7 @@ def get_command_parser(cmd):
 
     :return: An OptionParser instance.
     """
-    parser = OptionParser()
+    parser = optparse.OptionParser()
     for option in cmd.options:
         parser.add_option(option)
     usage = _u('%%prog %(cmd)s [options] %(args)s\n\n%(help)s') % {

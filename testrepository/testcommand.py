@@ -33,6 +33,7 @@ import multiprocessing
 from textwrap import dedent
 
 from fixtures import Fixture
+import yaml
 v2 = try_import('subunit.v2')
 
 from testrepository import results
@@ -142,7 +143,8 @@ class TestListingFixture(Fixture):
 
     def __init__(self, test_ids, cmd_template, listopt, idoption, ui,
         repository, parallel=True, listpath=None, parser=None,
-        test_filters=None, instance_source=None, group_callback=None):
+        test_filters=None, instance_source=None, group_callback=None,
+        worker_path=None):
         """Create a TestListingFixture.
 
         :param test_ids: The test_ids to use. May be None indicating that
@@ -179,6 +181,8 @@ class TestListingFixture(Fixture):
             test id and returns a group id. A group id is an arbitrary value
             used as a dictionary key in the scheduler. All test ids with the
             same group id are scheduled onto the same backend test process.
+        :param worker_path: Path to file with user provided grouping of tests
+                            expressed as a list of lists of test_ids
         """
         self.test_ids = test_ids
         self.template = cmd_template
@@ -192,6 +196,7 @@ class TestListingFixture(Fixture):
         self.test_filters = test_filters
         self._group_callback = group_callback
         self._instance_source = instance_source
+        self.worker_path = worker_path
 
     def setUp(self):
         super(TestListingFixture, self).setUp()
@@ -228,7 +233,7 @@ class TestListingFixture(Fixture):
             if self.concurrency == 1:
                 if default_idstr:
                     self.test_ids = default_idstr.split()
-            if self.concurrency != 1 or self.test_filters is not None:
+            if self.concurrency != 1 or self.test_filters is not None or self.worker_path:
                 # Have to be able to tell each worker what to run / filter
                 # tests.
                 self.test_ids = self.list_tests()
@@ -344,6 +349,31 @@ class TestListingFixture(Fixture):
                 pass
         return instance, cmd
 
+    def _get_test_lists_from_regex_list(self, ids, test_regexes):
+        test_id_list = []
+        for test_regex in test_regexes:
+            regex = re.compile(test_regex)
+            for test_id in ids:
+                if regex.search(test_id):
+                    test_id_list.append(test_id)
+        return test_id_list
+
+    def _generate_worker_groups(self, ids, worker_path):
+        with open(worker_path, 'r') as worker_file:
+            workers_desc = yaml.load(worker_file.read())
+        worker_groups = []
+        for worker in workers_desc:
+            if isinstance(worker, dict) and 'worker' in worker.keys():
+                if isinstance(worker['worker'], list):
+                    local_worker_list = self._get_test_lists_from_regex_list(
+                        ids, worker['worker'])
+                    worker_groups.append(local_worker_list)
+                else:
+                    raise TypeError('The input yaml is the incorrect format')
+            else:
+                raise TypeError('The input yaml is the incorrect format')
+        return worker_groups
+
     def run_tests(self):
         """Run the tests defined by the command and ui.
 
@@ -351,7 +381,10 @@ class TestListingFixture(Fixture):
         """
         result = []
         test_ids = self.test_ids
-        if self.concurrency == 1 and (test_ids is None or test_ids):
+        if self.worker_path:
+            test_id_groups = self._generate_worker_groups(test_ids,
+                                                          self.worker_path)
+        elif self.concurrency == 1 and (test_ids is None or test_ids):
             # Have to customise cmd here, as instances are allocated
             # just-in-time. XXX: Indicates this whole region needs refactoring.
             instance, cmd = self._per_instance_command(self.cmd)
@@ -367,7 +400,8 @@ class TestListingFixture(Fixture):
                     lambda:self._instance_source.release_instance(instance))]
             else:
                 return [run_proc]
-        test_id_groups = self.partition_tests(test_ids, self.concurrency)
+        else:
+            test_id_groups = self.partition_tests(test_ids, self.concurrency)
         for test_ids in test_id_groups:
             if not test_ids:
                 # No tests in this partition
@@ -534,7 +568,8 @@ class TestCommand(Fixture):
             raise ValueError("No .testr.conf config file")
         return parser
 
-    def get_run_command(self, test_ids=None, testargs=(), test_filters=None):
+    def get_run_command(self, test_ids=None, testargs=(), test_filters=None,
+                        worker_path=None):
         """Get the command that would be run to run tests.
         
         See TestListingFixture for the definition of test_ids and test_filters.
@@ -584,12 +619,12 @@ class TestCommand(Fixture):
             result = self.run_factory(test_ids, cmd, listopt, idoption,
                 self.ui, self.repository, listpath=listpath, parser=parser,
                 test_filters=test_filters, instance_source=self,
-                group_callback=group_callback)
+                group_callback=group_callback, worker_path=worker_path)
         else:
             result = self.run_factory(test_ids, cmd, listopt, idoption,
                 self.ui, self.repository, parser=parser,
                 test_filters=test_filters, instance_source=self,
-                group_callback=group_callback)
+                group_callback=group_callback, worker_path=worker_path)
         return result
 
     def get_filter_tags(self):

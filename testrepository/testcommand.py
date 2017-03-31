@@ -42,7 +42,7 @@ from testrepository.testlist import (
     )
 
 testrconf_help = dedent("""
-    Configuring via .testr.conf:
+    Configuring via the testr config file:
     ---
     [DEFAULT]
     test_command=foo $IDOPTION
@@ -53,7 +53,7 @@ testrconf_help = dedent("""
     execute tests. Shell variables are expanded in these commands on platforms
     that have a shell.
 
-    The full list of options and variables for .testr.conf:
+    The full list of options and variables for the testr config file:
     * filter_tags -- a list of tags which should be used to filter test counts.
       This is useful for stripping out non-test results from the subunit stream
       such as Zope test layers. These filtered items are still considered for
@@ -88,7 +88,7 @@ testrconf_help = dedent("""
       defaults to an empty string when no test ids are known and no explicit
       default is provided. This will not handle test ids with spaces.
 
-    See the testrepository manual for example .testr.conf files in different
+    See the testrepository manual for example the testr config files in different
     programming languages.
 
     """)
@@ -292,7 +292,7 @@ class TestListingFixture(Fixture):
         :return: A list of test ids.
         """
         if '$LISTOPT' not in self.template:
-            raise ValueError("LISTOPT not configured in .testr.conf")
+            raise ValueError("LISTOPT not configured in the testr config file")
         instance, list_cmd = self._per_instance_command(self.list_cmd)
         try:
             self.ui.output_values([('running', list_cmd)])
@@ -469,7 +469,7 @@ class TestListingFixture(Fixture):
 
 
 class TestCommand(Fixture):
-    """Represents the test command defined in .testr.conf.
+    """Represents the test command defined in the testr config file.
     
     :ivar run_factory: The fixture to use to execute a command.
     :ivar oldschool: Use failing.list rather than a unique file path.
@@ -488,7 +488,7 @@ class TestCommand(Fixture):
         """Create a TestCommand.
 
         :param ui: A testrepository.ui.UI object which is used to obtain the
-            location of the .testr.conf.
+            location of the testr config file.
         :param repository: A testrepository.repository.Repository used for
             determining test times when partitioning tests.
         """
@@ -525,13 +525,15 @@ class TestCommand(Fixture):
                 run_proc.returncode)
 
     def get_parser(self):
-        """Get a parser with the .testr.conf in it."""
+        """Get a parser with the testr config file in it."""
         parser = ConfigParser.ConfigParser()
         # This possibly should push down into UI.
         if self.ui.here == 'memory:':
             return parser
-        if not parser.read(os.path.join(self.ui.here, '.testr.conf')):
-            raise ValueError("No .testr.conf config file")
+        testr_conf_path = self.ui.config_path or os.path.join(self.ui.here,
+                                                              '.testr.conf')
+        if not parser.read(testr_conf_path):
+            raise ValueError("No testr config file")
         return parser
 
     def get_run_command(self, test_ids=None, testargs=(), test_filters=None):
@@ -547,7 +549,7 @@ class TestCommand(Fixture):
         except ConfigParser.NoOptionError as e:
             if e.message != "No option 'test_command' in section: 'DEFAULT'":
                 raise
-            raise ValueError("No test_command option present in .testr.conf")
+            raise ValueError("No test_command option present in the testr config file")
         elements = [command] + list(testargs)
         cmd = ' '.join(elements)
         idoption = ''
@@ -558,7 +560,7 @@ class TestCommand(Fixture):
             except ConfigParser.NoOptionError as e:
                 if e.message != "No option 'test_id_option' in section: 'DEFAULT'":
                     raise
-                raise ValueError("No test_id_option option present in .testr.conf")
+                raise ValueError("No test_id_option option present in the testr config file")
         listopt = ''
         if '$LISTOPT' in command:
             # LISTOPT is used, test_list_option must be configured.
@@ -567,7 +569,7 @@ class TestCommand(Fixture):
             except ConfigParser.NoOptionError as e:
                 if e.message != "No option 'test_list_option' in section: 'DEFAULT'":
                     raise
-                raise ValueError("No test_list_option option present in .testr.conf")
+                raise ValueError("No test_list_option option present in the testr config file")
         try:
             group_regex = parser.get('DEFAULT', 'group_regex')
         except ConfigParser.NoOptionError:

@@ -54,6 +54,10 @@ class UI(ui.AbstractUI):
     def here(self):
         return self._decorated.here
 
+    @property
+    def config_path(self):
+        return self._decorated.config_path
+
     def _iter_streams(self, stream_type):
         streams = self.input_streams.pop(stream_type, [])
         for stream_value in streams:

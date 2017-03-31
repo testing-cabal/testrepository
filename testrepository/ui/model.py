@@ -83,7 +83,7 @@ class UI(ui.AbstractUI):
     """
 
     def __init__(self, input_streams=None, options=(), args=(),
-        here='memory:', proc_outputs=(), proc_results=()):
+        here='memory:', proc_outputs=(), proc_results=(), config_path=None):
         """Create a model UI.
 
         :param input_streams: A list of stream name, (file or bytes) tuples to
@@ -95,6 +95,8 @@ class UI(ui.AbstractUI):
             created processes.
         :param proc_results: numeric exit code to be set in each created
             process.
+        :param config_path: The optional path for the config file to use for
+            the command
         """
         self.input_streams = {}
         if input_streams:
@@ -104,6 +106,7 @@ class UI(ui.AbstractUI):
                 self.input_streams.setdefault(stream_type, []).append(
                     stream_value)
         self.here = here
+        self.config_path = config_path
         self.unparsed_opts = options
         self.outputs = []
         # Could take parsed args, but for now this is easier.

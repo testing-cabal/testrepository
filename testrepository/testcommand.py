@@ -80,6 +80,10 @@ testrconf_help = dedent("""
     * instance_dispose -- dispose of one or more test running environments.
       Accepts $INSTANCE_IDS.
     * group_regex -- If set group tests by the matched section of the test id.
+    * group_regex_search -- Works the same as the group_regex option except
+      that it uses re.search() instead of re.match(). This option takes
+      precendence in the case where group_regex and group_regex_search are both
+      set.
     * $IDOPTION -- the variable to use to trigger running some specific tests.
     * $IDFILE -- A file created before the test command is run and deleted
       afterwards which contains a list of test ids, one per line. This can
@@ -572,7 +576,16 @@ class TestCommand(Fixture):
             group_regex = parser.get('DEFAULT', 'group_regex')
         except ConfigParser.NoOptionError:
             group_regex = None
-        if group_regex:
+        try:
+            group_regex_search = parser.get('DEFAULT', 'group_regex_search')
+        except ConfigParser.NoOptionError:
+            group_regex_search = None
+        if group_regex_search:
+            def group_callback(test_id, regex=re.compile(group_regex_search)):
+                match = regex.search(test_id)
+                if match:
+                    return match.group(0)
+        elif group_regex:
             def group_callback(test_id, regex=re.compile(group_regex)):
                 match = regex.match(test_id)
                 if match:

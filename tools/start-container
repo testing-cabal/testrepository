@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -e
+
+function container {
+  local version=$1
+  host=$(ls ~/.virtualenvs/testrepository-$version-* -d | sed -e "s/^.*testrepository-$version-//")
+  if [ -z "$host" ]; then
+    echo "No host found for $version"
+    return 1
+  fi
+  container=$host
+  return 0
+}
+
+function start {
+  local host=$1
+  local state=$(sudo lxc-info -s -H -n $host)
+  if [ -z "$state" ]; then
+    echo "host $host does not exist"
+    return 1
+  fi
+  if [ "RUNNING" != "$state" ]; then
+    sudo lxc-start -d -n $host 1>2
+    sudo lxc-wait -n $host -s RUNNING -t 2 1>2
+  fi
+  ssh $host "make --no-print-directory -C $PWD venv=~/.virtualenvs/testrepository-$profile-$host install-for-test" 1>&2
+}
+
+profile=$1
+count=$2
+if [ "$profile" = "DEFAULT" ]; then
+  # Nothing to do.
+  for i in $(seq 1 $count); do
+    echo -n " $i"
+  done
+  exit 0
+fi
+container $profile
+# We use one container
+start $host
+# And have no intrinsic concurrency limits
+# for i in $(seq 1 4); do #$count); do
+for i in $(seq 1 $count); do
+  echo -n " $i"
+done
+echo

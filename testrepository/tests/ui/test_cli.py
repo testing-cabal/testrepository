@@ -17,6 +17,7 @@
 
 import doctest
 from io import BytesIO, StringIO, TextIOWrapper
+import json
 import optparse
 import os
 import sys
@@ -28,6 +29,7 @@ import testtools
 from testtools import TestCase
 from testtools.compat import _b, _u
 from testtools.matchers import (
+    Equals,
     DocTestMatches,
     MatchesException,
     )
@@ -185,6 +187,30 @@ AssertionError: quux...
             DocTestMatches(
                 '...TestCLIUI.test_outputs_tests_to_stdout\n'
                 '...TestCLIUI.test_construct\n', doctest.ELLIPSIS))
+
+    def test_outputs_tests_meta_to_stdout_json(self):
+        ui, cmd = get_test_ui_and_cmd()
+        tests = {
+            'foo': {'profiles': ['1', '2']},
+            'bar': {'profiles': ['3', '4']},
+            }
+        ui.output_tests_meta(tests, 'json')
+        expected_bytes = json.dumps(tests, sort_keys=True).encode('utf8')
+        self.assertThat(
+            ui._stdout.buffer.getvalue(),
+            Equals(expected_bytes))
+
+    def test_outputs_tests_meta_to_stdout_list(self):
+        ui, cmd = get_test_ui_and_cmd()
+        tests = {
+            'foo': {'profiles': ['1', '2']},
+            'bar': {'profiles': ['3', '4']},
+            }
+        ui.output_tests_meta(tests, 'list')
+        expected_bytes = _b('bar\nfoo\n')
+        self.assertThat(
+            ui._stdout.buffer.getvalue(),
+            Equals(expected_bytes))
 
     def test_outputs_values_to_stdout(self):
         ui, cmd = get_test_ui_and_cmd()

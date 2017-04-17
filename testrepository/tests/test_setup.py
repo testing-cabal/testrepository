@@ -19,6 +19,8 @@ import os.path
 import subprocess
 import sys
 
+import fixtures
+
 from testtools import (
     TestCase,
     )
@@ -32,10 +34,12 @@ class TestCanSetup(TestCase):
     def test_bdist(self):
         # Single smoke test to make sure we can build a package.
         path = os.path.join(os.path.dirname(__file__), '..', '..', 'setup.py')
-        proc = subprocess.Popen([sys.executable, path, 'bdist'],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, universal_newlines=True)
-        output, err = proc.communicate()
+        with fixtures.TempDir() as d:
+            proc = subprocess.Popen(
+                [sys.executable, path, 'bdist', '-b', d.path],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, universal_newlines=True)
+            output, err = proc.communicate()
         self.assertThat(output, MatchesAny(
             # win32
             DocTestMatches("""...
@@ -45,7 +49,7 @@ Installing testr script...
 ...""", doctest.ELLIPSIS),
             # unixen
             DocTestMatches("""...
-Installing testr script to build/.../bin
+Installing testr script to .../dumb/.../bin
 ...""", doctest.ELLIPSIS)
             ))
         self.assertEqual(0, proc.returncode,

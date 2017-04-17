@@ -20,20 +20,25 @@ import optparse
 import re
 
 from extras import try_import
+import six
 import subunit
 v2_avail = try_import('subunit.ByteStreamToStreamResult')
 import testtools
 from testtools import (
     TestByTestResult,
     )
-from testtools.compat import _b
+from testtools.compat import _b, _u
 
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
 from testrepository.commands import Command
 from testrepository.commands.load import load
 from testrepository.ui import decorator
-from testrepository.testcommand import TestCommand, testrconf_help
+from testrepository.testcommand import (
+    apply_profiles,
+    TestCommand,
+    testrconf_help,
+    )
 from testrepository.testlist import parse_list
 
 
@@ -146,19 +151,34 @@ class run(Command):
         optparse.Option("--isolated", action="store_true",
             default=False,
             help="Run each test id in a separate test runner."),
+        optparse.Option("-p", "--profiles",
+            help="Comma separated list of profiles that may be present in the "
+                 "stream. By default the list_profiles hook in testr.conf is "
+                 "queried.",
+            default=""),
         ]
     args = [StringArgument('testfilters', 0, None), DoubledashArgument(),
         StringArgument('testargs', 0, None)]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
-    def _find_failing(self, repo):
+    def _find_failing(self, repo, profiles):
         run = repo.get_failing()
         case = run.get_test()
-        ids = []
+        ids = {}
         def gather_errors(test_dict):
             if test_dict['status'] == 'fail':
-                ids.append(test_dict['id'])
+                test_profiles = test_dict['tags'].intersection(
+                    profiles)
+                test_id = test_dict['id']
+                if test_id not in ids:
+                    meta = {'profiles': []}
+                    ids[test_id] = meta
+                else:
+                    meta = ids[test_id]
+                test_profiles = profiles.intersection(test_dict['tags'])
+                meta['profiles'] = sorted(
+                    test_profiles.union(meta['profiles']))
         result = testtools.StreamToDict(gather_errors)
         result.startTestRun()
         try:
@@ -169,29 +189,45 @@ class run(Command):
 
     def run(self):
         repo = self.repository_factory.open(self.ui.here)
-        if self.ui.options.failing or self.ui.options.analyze_isolation:
-            ids = self._find_failing(repo)
-        else:
-            ids = None
-        if self.ui.options.load_list:
-            list_ids = set()
-            # Should perhaps be text.. currently does its own decode.
-            with open(self.ui.options.load_list, 'rb') as list_file:
-                list_ids = set(parse_list(list_file.read()))
-            if ids is None:
-                # Use the supplied list verbatim
-                ids = list_ids
-            else:
-                # We have some already limited set of ids, just reduce to ids
-                # that are both failing and listed.
-                ids = list_ids.intersection(ids)
         if self.ui.arguments['testfilters']:
             filters = self.ui.arguments['testfilters']
         else:
             filters = None
-        testcommand = self.command_factory(self.ui, repo)
+        profiles = self.ui.options.profiles
+        if not isinstance(profiles, six.text_type):
+            profiles = profiles.decode('utf8')
+        profiles = profiles.split(_u(','))
+        if profiles == ['']:
+            profiles = None
+        testcommand = self.command_factory(self.ui, repo, profiles=profiles)
         testcommand.setUp()
         try:
+            if self.ui.options.failing or self.ui.options.analyze_isolation:
+                ids = self._find_failing(repo, testcommand.profiles)
+            else:
+                ids = None
+            if self.ui.options.load_list:
+                list_ids = set()
+                # Should perhaps be text.. currently does its own decode.
+                with open(self.ui.options.load_list, 'rb') as list_file:
+                    list_ids = set(parse_list(list_file.read()))
+                list_ids = apply_profiles(
+                    testcommand.default_profiles, list_ids)
+                if ids is None:
+                    # Use the supplied list verbatim
+                    ids = list_ids
+                else:
+                    # We have some already limited set of ids, just reduce to ids
+                    # that are both failing and listed.
+                    _ids = {}
+                    for test, id_meta in ids.items():
+                        if test not in list_ids:
+                            continue
+                        test_profiles = set(id_meta['profiles'])
+                        test_profiles.intersection_update(list_ids[test]['profiles'])
+                        _ids[test] = {'profiles': sorted(test_profiles)}
+                    ids = _ids
+            profiles = testcommand.default_profiles
             if not self.ui.options.analyze_isolation:
                 cmd = testcommand.get_run_command(ids, self.ui.arguments['testargs'],
                     test_filters = filters)
@@ -205,12 +241,12 @@ class run(Command):
                     for test_id in ids:
                         cmd = testcommand.get_run_command([test_id],
                             self.ui.arguments['testargs'], test_filters=filters)
-                        run_result = self._run_tests(cmd)
+                        run_result = self._run_tests(cmd, profiles)
                         if run_result > result:
                             result = run_result
                     return result
                 else:
-                    return self._run_tests(cmd)
+                    return self._run_tests(cmd, profiles)
             else:
                 # Where do we source data about the cause of conflicts.
                 # XXX: Should instead capture the run id in with the failing test
@@ -223,7 +259,7 @@ class run(Command):
                 for test_id in ids:
                     cmd = testcommand.get_run_command([test_id],
                         self.ui.arguments['testargs'], test_filters = filters)
-                    if not self._run_tests(cmd):
+                    if not self._run_tests(cmd, profiles):
                         # If the test was filtered, it won't have been run.
                         if test_id in repo.get_test_ids(repo.latest_id()):
                             spurious_failures.add(test_id)
@@ -254,7 +290,7 @@ class run(Command):
                             candidate_causes[bottom:bottom + check_width]
                             + [spurious_failure],
                             self.ui.arguments['testargs'])
-                        self._run_tests(cmd)
+                        self._run_tests(cmd, profiles)
                         # check that the test we're probing still failed - still
                         # awkward.
                         found_fail = []
@@ -340,13 +376,16 @@ class run(Command):
             prior_tests.extend(worker_tests[:worker_tests.index(failing_id)])
         return prior_tests
 
-    def _run_tests(self, cmd):
+    def _run_tests(self, cmd, profiles):
         """Run the tests cmd was parameterised with."""
         cmd.setUp()
         try:
             def run_tests():
-                run_procs = [('subunit', ReturnCodeToSubunit(proc)) for proc in cmd.run_tests()]
-                options = {}
+                run_procs = []
+                for proc in cmd.run_tests():
+                    stream = ReturnCodeToSubunit(proc.run_proc)
+                    run_procs.append(('subunit', stream))
+                options = {'profiles': ','.join(sorted(profiles))}
                 if (self.ui.options.failing or self.ui.options.analyze_isolation
                     or self.ui.options.isolated):
                     options['partial'] = True

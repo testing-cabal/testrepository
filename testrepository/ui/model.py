@@ -164,6 +164,11 @@ class UI(ui.AbstractUI):
         """Output a list of tests."""
         self.outputs.append(('tests', tests))
 
+    def output_tests_meta(self, tests, style):
+        if style not in ('json', 'list'):
+            raise Exception('unknown style %r' % (style,))
+        self.outputs.append(('tests_meta', tests, style))
+
     def output_values(self, values):
         self.outputs.append(('values', values))
 

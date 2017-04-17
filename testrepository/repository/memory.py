@@ -58,7 +58,7 @@ class Repository(AbstractRepository):
     def __init__(self):
         # Test runs:
         self._runs = []
-        self._failing = OrderedDict() # id -> test
+        self._failing = OrderedDict() # (id, profiles) -> test
         self._times = {} # id -> duration
 
     def count(self):
@@ -78,8 +78,8 @@ class Repository(AbstractRepository):
             raise KeyError("No tests in repository")
         return result
 
-    def _get_inserter(self, partial):
-        return _Inserter(self, partial)
+    def _get_inserter(self, partial, profiles):
+        return _Inserter(self, partial, profiles)
 
     def _get_test_times(self, test_ids):
         result = {}
@@ -133,9 +133,10 @@ class _Failures(AbstractTestRun):
 class _Inserter(AbstractTestRun):
     """Insert test results into a memory repository, and describe them later."""
 
-    def __init__(self, repository, partial):
+    def __init__(self, repository, partial, profiles):
         self._repository = repository
         self._partial = partial
+        self._profiles = set(profiles)
         self._tests = []
         # Subunit V2 stream for get_subunit_stream
         self._subunit = None
@@ -167,11 +168,13 @@ class _Inserter(AbstractTestRun):
             self._repository._failing = OrderedDict()
         for test_dict in self._tests:
             test_id = test_dict['id']
+            profiles = test_dict['tags'].intersection(self._profiles)
+            key = (test_id, frozenset(profiles))
             if test_dict['status'] == 'fail':
                 case = testtools.testresult.real.test_dict_to_case(test_dict)
-                self._repository._failing[test_id] = case
+                self._repository._failing[key] = case
             else:
-                self._repository._failing.pop(test_id, None)
+                self._repository._failing.pop(key, None)
         return self._run_id
 
     def status(self, *args, **kwargs):

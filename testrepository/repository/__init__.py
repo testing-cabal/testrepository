@@ -25,7 +25,13 @@ testing.
 
 Repositories are identified by their URL, and new ones are made by calling
 the initialize function in the appropriate repository module.
+
+Repositories may have very different implementations - web services,
+databases, in-memory stores. Their guaranteed behaviour is defined by the
+contract tests in the test suite (tests.test_repository).
 """
+
+import warnings
 
 from testtools import StreamToDict, TestResult
 
@@ -68,7 +74,7 @@ class AbstractRepository(object):
         """
         raise NotImplementedError(self.get_failing)
 
-    def get_inserter(self, partial=False):
+    def get_inserter(self, partial=False, profiles=None):
         """Get an inserter that will insert a test run into the repository.
 
         Repository implementations should implement _get_inserter.
@@ -78,16 +84,35 @@ class AbstractRepository(object):
 
         :param partial: If True, the stream being inserted only executed some
             tests rather than all the projects tests.
-        :return an inserter: Inserters meet the extended TestResult protocol
-            that testtools 0.9.2 and above offer. The startTestRun and
+        :param profiles: An iterable of the profiles that may be in use. This
+            can be used by repositories that implement materialized lists of
+            failing tests to eliminate non-profile tags (e.g. those that do
+            not represent a distinct test instance).
+        :return an inserter: Inserters meet the StreamResult protocol
+            that testtools 1.0.0 and above offer. The startTestRun and
             stopTestRun methods in particular must be called.
         """
-        return self._get_inserter(partial)
+        try:
+            if profiles is None:
+                profiles = set()
+            return self._get_inserter(partial, profiles)
+        except TypeError:
+            warnings.warn(
+                "Repository._get_inserter missing profiles support.",
+                DeprecationWarning)
+            return self._get_inserter(partial)
     
-    def _get_inserter(self):
+    def _get_inserter(self, partial, profiles):
         """Get an inserter for get_inserter.
         
         The result is decorated with an AutoTimingTestResultDecorator.
+
+        :param partial: If True, the stream being inserted only executed some
+            tests rather than all the projects tests.
+        :param profiles: An iterable of the profiles that may be in use. This
+            can be used by repositories that implement materialized lists of
+            failing tests to eliminate non-profile tags (e.g. those that do
+            not represent a distinct test instance).
         """
         raise NotImplementedError(self._get_inserter)
 

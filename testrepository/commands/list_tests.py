@@ -14,7 +14,7 @@
 
 """List the tests from a project and show them."""
 
-from io import BytesIO
+import optparse
 
 from testtools import TestResult
 from testtools.compat import _b
@@ -22,7 +22,8 @@ from testtools.compat import _b
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
 from testrepository.commands import Command
-from testrepository.testcommand import testrconf_help, TestCommand
+from testrepository.testcommand import (
+    testrconf_help, TestCommand)
 
 
 class list_tests(Command):
@@ -31,6 +32,10 @@ class list_tests(Command):
 
     args = [StringArgument('testfilters', 0, None), DoubledashArgument(),
         StringArgument('testargs', 0, None)]
+    options = [
+        optparse.Option("--json", action="store_true",
+            default=False, help="Output list in JSON format."),
+        ]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
@@ -46,17 +51,17 @@ class list_tests(Command):
                 ids, self.ui.arguments['testargs'], test_filters=filters)
             cmd.setUp()
             try:
-                # Ugh.
+                # Ugh - poor layering. To Fix.
                 # List tests if the fixture has not already needed to to filter.
                 if filters is None:
-                    ids = cmd.list_tests()
+                    ids = cmd.list_tests(testcommand.default_profiles)
                 else:
                     ids = cmd.test_ids
-                stream = BytesIO()
-                for id in ids:
-                    stream.write(('%s\n' % id).encode('utf8'))
-                stream.seek(0)
-                self.ui.output_stream(stream)
+                if self.ui.options.json:
+                    style = 'json'
+                else:
+                    style = 'list'
+                self.ui.output_tests_meta(ids, style)
                 return 0
             finally:
                 cmd.cleanUp()

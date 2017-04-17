@@ -16,7 +16,9 @@
 
 from datetime import datetime, timedelta
 from io import BytesIO
+import os.path
 from tempfile import NamedTemporaryFile
+import textwrap
 
 from extras import try_import
 v2_avail = try_import('subunit.ByteStreamToStreamResult')
@@ -36,12 +38,27 @@ from testrepository.tests import (
     StubTestCommand,
     Wildcard,
     )
+from testrepository.tests.stubpackage import TempDirResource
 from testrepository.tests.test_repository import RecordingRepositoryFactory
 from testrepository.tests.repository.test_file import HomeDirTempDir
 from testrepository.repository import memory, RepositoryNotFound
 
 
 class TestCommandLoad(ResourcedTestCase):
+
+    resources = [('tempdir', TempDirResource())]
+
+    def dirty(self):
+        # Ugly: TODO - improve testresources to make this go away.
+        dict(self.resources)['tempdir']._dirty = True
+
+    def config_path(self):
+        return os.path.join(self.tempdir, '.testr.conf')
+
+    def set_config(self, text):
+        self.dirty()
+        with open(self.config_path(), 'wt') as stream:
+            stream.write(text)
 
     def test_load_loads_subunit_stream_to_default_repository(self):
         ui = UI([('subunit', _b(''))])
@@ -80,6 +97,38 @@ class TestCommandLoad(ResourcedTestCase):
         self.assertTrue('subunit' in ui.input_streams)
         # Results loaded
         self.assertEqual(1, repo.count())
+
+    def test_load_implicit_profiles(self):
+        # load should query profiles from TestCommand if none are supplied.
+        # Detect this by failing a test in a memory repo.
+        if v2_avail:
+            buffer = BytesIO()
+            stream = subunit.StreamResultToBytes(buffer)
+            stream.status(
+                test_id='foo', test_status='fail', test_tags=set(['p1']))
+            stream.status(
+                test_id='foo', test_status='fail', test_tags=set(['p2']))
+            subunit_bytes = buffer.getvalue()
+        else:
+            self.skip('no v1 test')
+        ui = UI([('subunit', subunit_bytes)])
+        ui.proc_outputs=[_b('p1 p2')]
+        ui.here = self.tempdir
+        self.set_config(textwrap.dedent("""\
+            [DEFAULT]
+            list_profiles=list_profiles
+            """))
+        cmd = load.load(ui)
+        ui.set_command(cmd)
+        cmd.repository_factory = memory.RepositoryFactory()
+        cmd.repository_factory.initialise(ui.here)
+        self.assertEqual(1, cmd.execute())
+        self.assertEqual([
+            ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('results', Wildcard),
+            ('summary', False, 2, None, Wildcard, None, [('id', 0, None), ('failures', 2, None)]),
+            ], ui.outputs)
 
     def test_load_initialises_repo_if_doesnt_exist_and_init_forced(self):
         ui = UI([('subunit', _b(''))], options=[('force_init', True)])
@@ -311,10 +360,7 @@ class TestCommandLoad(ResourcedTestCase):
         ui.set_command(cmd)
         cmd.repository_factory = memory.RepositoryFactory()
         repo = cmd.repository_factory.initialise(ui.here)
-        # XXX: Circumvent the AutoTimingTestResultDecorator so we can get
-        # predictable times, rather than ones based on the system
-        # clock. (Would normally expect to use repo.get_inserter())
-        inserter = repo._get_inserter(False)
+        inserter = repo.get_inserter(False)
         # Insert a run with different results.
         inserter.startTestRun()
         inserter.status(test_id=self.id(), test_status='inprogress',

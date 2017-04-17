@@ -75,6 +75,11 @@ class load(Command):
         optparse.Option("--full-results", action="store_true",
             default=False,
             help="No-op - deprecated and kept only for backwards compat."),
+        optparse.Option("-p", "--profiles",
+            help="Comma separated list of profiles that may be present in the "
+                 "stream. By default the list_profiles hook in testr.conf is "
+                 "queried.",
+            default=""),
         ]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
@@ -88,7 +93,10 @@ class load(Command):
                 repo = self.repository_factory.initialise(path)
             else:
                 raise
-        testcommand = self.command_factory(self.ui, repo)
+        profiles = self.ui.options.profiles.split(',')
+        if profiles == ['']:
+            profiles = None
+        testcommand = self.command_factory(self.ui, repo, profiles=profiles)
         # Not a full implementation of TestCase, but we only need to iterate
         # back to it. Needs to be a callable - its a head fake for
         # testsuite.add.
@@ -126,35 +134,38 @@ class load(Command):
                 decorate = partial(mktagger, pos)
                 case = testtools.DecorateTestCaseResult(case, decorate)
                 yield (case, str(pos))
-        case = testtools.ConcurrentStreamTestSuite(make_tests)
-        # One unmodified copy of the stream to repository storage
-        inserter = repo.get_inserter(partial=self.ui.options.partial)
-        # One copy of the stream to the UI layer after performing global
-        # filters.
-        try:
-            previous_run = repo.get_latest_run()
-        except KeyError:
-            previous_run = None
-        output_result, summary_result = self.ui.make_result(
-            inserter.get_id, testcommand, previous_run=previous_run)
-        result = testtools.CopyStreamResult([inserter, output_result])
-        runner_thread = None
-        result.startTestRun()
-        try:
-            # Convert user input into a stdin event stream
-            interactive_streams = list(self.ui.iter_streams('interactive'))
-            if interactive_streams:
-                case = InputToStreamResult(interactive_streams[0])
-                runner_thread = threading.Thread(
-                    target=case.run, args=(result,))
-                runner_thread.daemon = True
-                runner_thread.start()
-            case.run(result)
-        finally:
-            result.stopTestRun()
-            if interactive_streams and runner_thread:
-                runner_thread.stop = True
-                runner_thread.join(10)
+        # Setup testcommand to query profiles etc.
+        with testcommand:
+            case = testtools.ConcurrentStreamTestSuite(make_tests)
+            # One unmodified copy of the stream to repository storage
+            inserter = repo.get_inserter(
+                partial=self.ui.options.partial, profiles=testcommand.profiles)
+            # One copy of the stream to the UI layer after performing global
+            # filters.
+            try:
+                previous_run = repo.get_latest_run()
+            except KeyError:
+                previous_run = None
+            output_result, summary_result = self.ui.make_result(
+                inserter.get_id, testcommand, previous_run=previous_run)
+            result = testtools.CopyStreamResult([inserter, output_result])
+            runner_thread = None
+            result.startTestRun()
+            try:
+                # Convert user input into a stdin event stream
+                interactive_streams = list(self.ui.iter_streams('interactive'))
+                if interactive_streams:
+                    case = InputToStreamResult(interactive_streams[0])
+                    runner_thread = threading.Thread(
+                        target=case.run, args=(result,))
+                    runner_thread.daemon = True
+                    runner_thread.start()
+                case.run(result)
+            finally:
+                result.stopTestRun()
+                if interactive_streams and runner_thread:
+                    runner_thread.stop = True
+                    runner_thread.join(10)
         if not summary_result.wasSuccessful():
             return 1
         else:

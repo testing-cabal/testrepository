@@ -18,6 +18,7 @@ from io import BytesIO
 import os.path
 from subprocess import PIPE
 import tempfile
+import textwrap
 
 from extras import try_import
 from fixtures import (
@@ -36,9 +37,11 @@ from testtools.matchers import (
     MatchesListwise,
     )
 
+from testrepository.commands import Command
 from testrepository.commands import run
 from testrepository.ui.model import UI, ProcessModel
 from testrepository.repository import memory
+from testrepository.testcommand import apply_profiles
 from testrepository.testlist import write_list
 from testrepository.tests import ResourcedTestCase, Wildcard
 from testrepository.tests.stubpackage import TempDirResource
@@ -46,7 +49,7 @@ from testrepository.tests.test_testcommand import FakeTestCommand
 from testrepository.tests.test_repository import make_test
 
 
-class TestCommand(ResourcedTestCase):
+class BaseTestCommand(ResourcedTestCase):
 
     resources = [('tempdir', TempDirResource())]
 
@@ -75,11 +78,31 @@ class TestCommand(ResourcedTestCase):
         repo = cmd.repository_factory.initialise(ui.here)
         inserter = repo.get_inserter()
         inserter.startTestRun()
-        inserter.status(test_id='passing', test_status='success')
+        inserter.status(
+            test_id='passing', test_status='success',
+            test_tags=set(['DEFAULT']))
         if failures:
-            inserter.status(test_id='failing1', test_status='fail')
-            inserter.status(test_id='failing2', test_status='fail')
+            inserter.status(
+                test_id='failing1', test_status='fail',
+                test_tags=set(['DEFAULT', 'p1']))
+            inserter.status(
+                test_id='failing2', test_status='fail',
+                test_tags=set(['DEFAULT', 'p2']))
         inserter.stopTestRun()
+
+    def capture_ids(self, list_result=None):
+        params = []
+        def capture_ids(self, ids, args, test_filters=None):
+            params.append([self, ids, args, test_filters])
+            result = Fixture()
+            result.run_tests = lambda:[]
+            if list_result is not None:
+                result.list_tests = lambda:list(list_result)
+            return result
+        return params, capture_ids
+
+
+class TestCommand(BaseTestCommand):
 
     def test_no_config_file_errors(self):
         ui, cmd = self.get_test_ui_and_cmd()
@@ -126,7 +149,7 @@ class TestCommand(ResourcedTestCase):
         self.setup_repo(cmd, ui)
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n')
-        self.assertEqual(0, cmd.execute())
+        self.expectThat(0, Equals(cmd.execute()))
         expected_cmd = 'foo failing1 failing2'
         self.assertEqual([
             ('values', [('running', expected_cmd)]),
@@ -187,66 +210,122 @@ class TestCommand(ResourcedTestCase):
             ('summary', True, 0, -3, None, None, [('id', 1, None)]),
             ], ui.outputs)
 
-    def capture_ids(self, list_result=None):
-        params = []
-        def capture_ids(self, ids, args, test_filters=None):
-            params.append([self, ids, args, test_filters])
-            result = Fixture()
-            result.run_tests = lambda:[]
-            if list_result is not None:
-                result.list_tests = lambda:list(list_result)
-            return result
-        return params, capture_ids
-
-    def test_load_list_failing_takes_id_intersection(self):
-        list_file = tempfile.NamedTemporaryFile()
-        self.addCleanup(list_file.close)
-        write_list(list_file, ['foo', 'quux', 'failing1'])
-        # The extra tests - foo, quux - won't match known failures, and the
-        # unlisted failure failing2 won't match the list.
-        expected_ids = set(['failing1'])
-        list_file.flush()
-        ui, cmd = self.get_test_ui_and_cmd(
-            options=[('load_list', list_file.name), ('failing', True)])
+    def test_failing_some_profiles_failed(self):
+        # Setup the repository:
+        # test_id p1 passes
+        # test_id p2 failed
+        # test_id p3 failed
+        # Run testr run --failing
+        # Should query profiles, and run just test_id in p2,p3 nothing in p1.
+        ui, cmd = self.get_test_ui_and_cmd()
+        profiles = _b('p1 p2 p3')
+        ui, cmd = self.get_test_ui_and_cmd(options=[('failing', True),],
+            proc_outputs=[profiles])
         cmd.repository_factory = memory.RepositoryFactory()
-        self.setup_repo(cmd, ui)
-        self.set_config(
-            '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
+        repo = cmd.repository_factory.initialise(ui.here)
+        inserter = repo.get_inserter(profiles=set(['p1', 'p2']))
+        inserter.startTestRun()
+        inserter.status(
+            test_id='test_id', test_status='success',
+            test_tags=set(['p1']))
+        inserter.status(
+            test_id='test_id', test_status='fail',
+            test_tags=set(['p2']))
+        inserter.status(
+            test_id='test_id', test_status='fail',
+            test_tags=set(['p3']))
+        inserter.stopTestRun()
+        config_text = textwrap.dedent("""\
+            [DEFAULT]
+            test_command=foo $IDOPTION
+            test_id_option=--load-list $IDFILE
+            list_profiles=list_profiles
+            """)
+        self.set_config(config_text)
         params, capture_ids = self.capture_ids()
         self.useFixture(MonkeyPatch(
             'testrepository.testcommand.TestCommand.get_run_command',
             capture_ids))
-        cmd_result = cmd.execute()
+        self.expectThat(cmd.execute(), Equals(0))
+        expected_cmd = 'foo '
         self.assertEqual([
+            ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
             ('results', Wildcard),
-            ('summary', True, 0, -3, None, None, [('id', 1, None)])
+            ('summary', True, 0, -3, None, None, [('id', 1, None)]),
             ], ui.outputs)
-        self.assertEqual(0, cmd_result)
+        expected_ids = {
+            'test_id': {'profiles': ['p2', 'p3']},
+            }
         self.assertEqual([[Wildcard, expected_ids, [], None]], params)
 
-    def test_load_list_passes_ids(self):
-        list_file = tempfile.NamedTemporaryFile()
-        self.addCleanup(list_file.close)
-        expected_ids = set(['foo', 'quux', 'bar'])
-        write_list(list_file, expected_ids)
-        list_file.flush()
+    def test_passes_profiles_to_load(self):
+        # Should query profiles, and pass all potential profiles in.
+        profiles = _b('p1 p2 p3')
         ui, cmd = self.get_test_ui_and_cmd(
-            options=[('load_list', list_file.name)])
+            proc_outputs=[profiles])
         cmd.repository_factory = memory.RepositoryFactory()
-        self.setup_repo(cmd, ui)
-        self.set_config(
-            '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
-        params, capture_ids = self.capture_ids()
-        self.useFixture(MonkeyPatch(
-            'testrepository.testcommand.TestCommand.get_run_command',
-            capture_ids))
-        cmd_result = cmd.execute()
+        repo = cmd.repository_factory.initialise(ui.here)
+        config_text = textwrap.dedent("""\
+            [DEFAULT]
+            test_command=foo $IDOPTION
+            test_id_option=--load-list $IDFILE
+            list_profiles=list_profiles
+            """)
+        self.set_config(config_text)
+        class load(Command):
+            def __init__(_self, ui):
+                self.assertEqual({'profiles': 'p1,p2,p3'}, ui._options)
+            def execute(self):
+                return 0
+        self.useFixture(MonkeyPatch('testrepository.commands.run.load', load))
+        self.expectThat(cmd.execute(), Equals(0))
+        expected_cmd = 'foo '
         self.assertEqual([
-            ('results', Wildcard),
-            ('summary', True, 0, -3, None, None, [('id', 1, None)])
+            ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+            ('communicate',),
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ('values', [('running', expected_cmd)]),
+            ('popen', (expected_cmd,),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
             ], ui.outputs)
-        self.assertEqual(0, cmd_result)
-        self.assertEqual([[Wildcard, expected_ids, [], None]], params)
+
+    def test_explicit_profiles(self):
+        # Should query profiles, and pass all potential profiles in.
+        profiles = _b('p1 p2 p3')
+        ui, cmd = self.get_test_ui_and_cmd(
+            options=[('profiles', 'p1,p2')],
+            proc_outputs=[profiles])
+        cmd.repository_factory = memory.RepositoryFactory()
+        repo = cmd.repository_factory.initialise(ui.here)
+        config_text = textwrap.dedent("""\
+            [DEFAULT]
+            test_command=foo $IDOPTION $PROFILE
+            test_id_option=--load-list $IDFILE
+            list_profiles=list_profiles
+            """)
+        self.set_config(config_text)
+        class load(Command):
+            def __init__(_self, ui):
+                self.assertEqual({'profiles': 'p1,p2'}, ui._options)
+            def execute(self):
+                return 0
+        self.useFixture(MonkeyPatch('testrepository.commands.run.load', load))
+        self.expectThat(cmd.execute(), Equals(0))
+        expected_cmd = 'foo '
+        self.assertEqual([
+            ('values', [('running', 'foo  p1')]),
+            ('popen', ('foo  p1',),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ('values', [('running', 'foo  p2')]),
+            ('popen', ('foo  p2',),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ], ui.outputs)
 
     def test_extra_options_passed_in(self):
         ui, cmd = self.get_test_ui_and_cmd(args=('--', 'bar', 'quux'))
@@ -382,7 +461,11 @@ class TestCommand(ResourcedTestCase):
             ('summary', True, 0, -3, None, None, [('id', 1, None)])
             ], ui.outputs)
         self.assertEqual(0, cmd_result)
-        self.assertThat(params[0][1], Equals(['failing1', 'failing2']))
+        expected_ids = {
+            'failing1': {'profiles': ['DEFAULT']},
+            'failing2': {'profiles': ['DEFAULT']},
+            }
+        self.assertThat(params[0][1], Equals(expected_ids))
         self.assertThat(
             params[0][2], MatchesListwise([Equals('bar'), Equals('quux')]))
         self.assertThat(params[0][3], MatchesListwise([Equals('g1')]))
@@ -539,3 +622,90 @@ class TestReturnCodeToSubunit(ResourcedTestCase):
             expected_content = _b('foo\nbar\ntest: process-returncode\n'
                 'failure: process-returncode [\n returncode 1\n]\n')
         self.assertEqual(expected_content, content)
+
+
+class TestLoadingIds(BaseTestCommand):
+
+    scenarios = [
+        ('noprofile', {'profile': ''}),
+        ('profile', {'profile': 'DEFAULT'})]
+
+    def test_load_list_passes_ids(self):
+        list_file = tempfile.NamedTemporaryFile()
+        self.addCleanup(list_file.close)
+        expected_ids = set(['foo', 'quux', 'bar'])
+        load_ids = set(expected_ids)
+        if self.profile:
+            load_ids = apply_profiles([self.profile], load_ids)
+        expected_ids = apply_profiles(['DEFAULT'], expected_ids)
+        write_list(list_file, load_ids)
+        list_file.flush()
+        ui, cmd = self.get_test_ui_and_cmd(
+            options=[('load_list', list_file.name)])
+        cmd.repository_factory = memory.RepositoryFactory()
+        self.setup_repo(cmd, ui)
+        self.set_config(
+            '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
+        params, capture_ids = self.capture_ids()
+        self.useFixture(MonkeyPatch(
+            'testrepository.testcommand.TestCommand.get_run_command',
+            capture_ids))
+        cmd_result = cmd.execute()
+        self.assertEqual([
+            ('results', Wildcard),
+            ('summary', True, 0, -3, None, None, [('id', 1, None)])
+            ], ui.outputs)
+        self.assertEqual(0, cmd_result)
+        self.assertEqual([[Wildcard, expected_ids, [], None]], params)
+
+    def test_load_list_failing_takes_id_intersection(self):
+        # XXX: teach about profiles
+        list_file = tempfile.NamedTemporaryFile()
+        self.addCleanup(list_file.close)
+        load_ids = set(['foo', 'quux', 'failing1'])
+        if self.profile:
+            load_ids = apply_profiles([self.profile], load_ids)
+        # TODO: json based writing as a separate dimension, otherwise these
+        # apply to all default profiles only.
+        write_list(list_file, load_ids)
+        # The extra tests - foo, quux - won't match known failures, and the
+        # unlisted failure failing2 won't match the list.
+        if self.profile:
+            expected_ids = {'failing1': {'profiles': ['DEFAULT', 'p1']}}
+        else:
+            expected_ids = {'failing1': {'profiles': ['DEFAULT']}}
+        list_file.flush()
+        ui, cmd = self.get_test_ui_and_cmd(
+            options=[('load_list', list_file.name), ('failing', True)],
+            proc_outputs=[_b("DEFAULT p1 p2")])
+        cmd.repository_factory = memory.RepositoryFactory()
+        self.setup_repo(cmd, ui)
+        config_text = textwrap.dedent("""\
+            [DEFAULT]
+            test_command=foo $IDOPTION
+            test_id_option=--load-list $IDFILE
+            """)
+        # When testing with profiles, declare them
+        if self.profile:
+            config_text = config_text + textwrap.dedent("""\
+                list_profiles=list_profiles
+                """)
+        self.set_config(config_text)
+        params, capture_ids = self.capture_ids()
+        self.useFixture(MonkeyPatch(
+            'testrepository.testcommand.TestCommand.get_run_command',
+            capture_ids))
+        cmd_result = cmd.execute()
+        expected_outputs = [
+            ('results', Wildcard),
+            ('summary', True, 0, -3, None, None, [('id', 1, None)]),
+            ]
+        if self.profile:
+            expected_outputs[0:0] = [
+                ('popen', ('list_profiles',), {'shell': True, 'stdin': -1, 'stdout': -1}),
+                ('communicate',),
+                ]
+        self.assertEqual(expected_outputs, ui.outputs)
+        self.assertEqual(0, cmd_result)
+        self.assertEqual([[Wildcard, expected_ids, [], None]], params)
+

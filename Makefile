@@ -21,7 +21,8 @@ editable:
 	./testr init
 
 check: editable .testrepository
-	./testr run --parallel
+	# Run without containers/multiple profiles by default.
+	./testr run --parallel -p DEFAULT
 
 check-xml:
 	python -m subunit.run testrepository.tests.test_suite | subunit2junitxml -o test.xml -f | subunit2pyunit
@@ -32,4 +33,12 @@ release:
 README.rst: editable testrepository/commands/quickstart.py
 	./testr quickstart > $@
 
-.PHONY: check check-xml editable release all
+${venv}/testr-installed-stamp: requirements.txt setup.cfg
+	${venv}/bin/pip -q install -e .[test]
+	touch ${venv}/testr-installed-stamp
+
+
+install-for-test: ${venv}/testr-installed-stamp
+	@#  nothing
+
+.PHONY: check check-xml editable install-for-test release all

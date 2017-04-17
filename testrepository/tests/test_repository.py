@@ -164,6 +164,18 @@ class TestRepositoryContract(ResourcedTestCase):
             analyzer.stopTestRun()
         return analyzer
 
+    def get_failing_list(self, repo):
+        """Analyze a failing stream from repo and return test dicts for it."""
+        run = repo.get_failing()
+        analyzed = []
+        analyzer = testtools.StreamToDict(on_test=analyzed.append)
+        analyzer.startTestRun()
+        try:
+            run.get_test().run(analyzer)
+        finally:
+            analyzer.stopTestRun()
+        return analyzed
+
     def get_last_run(self, repo):
         """Return the results from a stream."""
         run = repo.get_test_run(repo.latest_id())
@@ -179,9 +191,14 @@ class TestRepositoryContract(ResourcedTestCase):
         repo = self.repo_impl.initialise(self.sample_url)
         self.assertIsInstance(repo, repository.AbstractRepository)
 
-    def test_can_get_inserter(self):
+    def test_can_get_inserter_no_args(self):
         repo = self.repo_impl.initialise(self.sample_url)
         result = repo.get_inserter()
+        self.assertNotEqual(None, result)
+
+    def test_can_get_inserter_profiles(self):
+        repo = self.repo_impl.initialise(self.sample_url)
+        result = repo.get_inserter(profiles=['DEFAULT'])
         self.assertNotEqual(None, result)
 
     def test_insert_stream_smoke(self):
@@ -556,3 +573,169 @@ class TestRepositoryContract(ResourcedTestCase):
         self.assertEqual(run_id, repo.latest_id())
         returned_ids = repo.get_test_ids(run_id)
         self.assertEqual([test.id() for test in test_cases], returned_ids)
+
+    def test_insert_multiple_profiles_sets_failing(self):
+        # If a single run has the same test multiple times in different
+        # profiles, the failures are captured and reported even if
+        # successes are signaled after that.
+        repo = self.repo_impl.initialise(self.sample_url)
+        result = repo.get_inserter(profiles=set(['p1', 'p2', 'p3']))
+        result.startTestRun()
+        now = datetime.now(tz=iso8601.Utc())
+        result.status(
+            test_id='testid', test_tags=set(['p1']), test_status='success',
+            timestamp=now)
+        result.status(
+            test_id='testid', test_tags=set(['p2']), test_status='fail',
+            timestamp=now)
+        result.status(
+            test_id='testid', test_tags=set(['p3']), test_status='success',
+            timestamp=now)
+        result.stopTestRun()
+        analyzed = self.get_failing_list(repo)
+        # Note - this fails sporadically on pypy3 w/file repo on a differing
+        # microsecond! (Odd with a fixed timestamp, but there you are) - I
+        # think the migration of the repo to v2 will fix this, thus tolerating
+        # it for now.
+        self.assertEqual([{'details': {},
+            'id': 'testid',
+            'status': 'fail',
+            'tags': set(['p2']),
+            'timestamps': [now, now]}], analyzed)
+
+    def test_insert_multiple_profiles_partial_updates(self):
+        # If a single run has the same test multiple times in different
+        # profiles, the failures are captured and reported distinctly.
+        # p1, p2 fail
+        repo = self.repo_impl.initialise(self.sample_url)
+        result = repo.get_inserter(profiles=set(['p1', 'p2', 'p3']))
+        result.startTestRun()
+        now = datetime.now(tz=iso8601.Utc())
+        result.status(
+            test_id='testid', test_tags=set(['p1']), test_status='fail',
+            timestamp=now)
+        result.status(
+            test_id='testid', test_tags=set(['p2']), test_status='fail',
+            timestamp=now)
+        result.stopTestRun()
+        # Now p1 is missing (and should carry through),
+        # p2 succeeds (and should no longer be reported failing)
+        # and p3 is a new failure and should be reported failing
+        result = repo.get_inserter(
+            partial=True, profiles=set(['p1', 'p2', 'p3']))
+        result.startTestRun()
+        result.status(
+            test_id='testid', test_tags=set(['p2']), test_status='success',
+            timestamp=now)
+        result.status(
+            test_id='testid', test_tags=set(['p3']), test_status='fail',
+            timestamp=now)
+        result.stopTestRun()
+        analyzed = self.get_failing_list(repo)
+        analyzed.sort(key=lambda d:list(d['tags']))
+        self.assertEqual([
+            {'details': {},
+             'id': 'testid',
+             'status': 'fail',
+             'tags': set(['p1']),
+             'timestamps': [now, now]},
+            {'details': {},
+             'id': 'testid',
+             'status': 'fail',
+             'tags': set(['p3']),
+             'timestamps': [now, now]},
+            ], analyzed)
+
+    def test_insert_missing_profile_does_not_reset_other_failing_test(self):
+        # Only the supplied profiles are considered, not arbitrary tags
+        # (otherwise worker-N tags would cause failures to be considered
+        # distinct).
+        repo = self.repo_impl.initialise(self.sample_url)
+        result = repo.get_inserter(profiles=set(['p1', 'p2', 'p3']))
+        result.startTestRun()
+        now = datetime.now(tz=iso8601.Utc())
+        # These two should be considered identical
+        result.status(
+            test_id='testid', test_tags=set(['p1', 't1']), test_status='fail',
+            timestamp=now)
+        result.status(
+            test_id='testid', test_tags=set(['p1', 't2']), test_status='fail',
+            timestamp=now)
+
+        result.stopTestRun()
+        # Now p1 is missing (and should carry through),
+        # p2 succeeds (and should no longer be reported failing)
+        # and p3 is a new failure and should be reported failing
+        result = repo.get_inserter(
+            partial=True, profiles=set(['p1', 'p2', 'p3']))
+        result.startTestRun()
+        result.status(
+            test_id='testid', test_tags=set(['p2']), test_status='success',
+            timestamp=now)
+        result.status(
+            test_id='testid', test_tags=set(['p3']), test_status='fail',
+            timestamp=now)
+        result.stopTestRun()
+        analyzed = self.get_failing_list(repo)
+        analyzed.sort(key=lambda d:sorted(d['tags']))
+        self.assertEqual([
+            {'details': {},
+             'id': 'testid',
+             'status': 'fail',
+             'tags': set(['p1', 't2']),
+             'timestamps': [now, now]},
+            {'details': {},
+             'id': 'testid',
+             'status': 'fail',
+             'tags': set(['p3']),
+             'timestamps': [now, now]},
+            ], analyzed)
+
+    def test_insert_non_profile_tags_ignored_for_failing_deduplication(self):
+        # Only the supplied profiles are considered, not arbitrary tags
+        # (otherwise worker-N tags would cause failures to be considered
+        # distinct).
+        repo = self.repo_impl.initialise(self.sample_url)
+        result = repo.get_inserter(profiles=['p1'])
+        result.startTestRun()
+        now = datetime.now(tz=iso8601.Utc())
+        # These two should be considered identical
+        result.status(
+            test_id='testid', test_tags=set(['p1', 't1']), test_status='fail',
+            timestamp=now)
+        result.status(
+            test_id='testid', test_tags=set(['p1', 't2']), test_status='fail',
+            timestamp=now)
+        result.stopTestRun()
+        analyzed = self.get_failing_list(repo)
+        self.assertEqual([
+            {'details': {},
+             'id': 'testid',
+             'status': 'fail',
+             'tags': set(['p1', 't2']), # The most recent one wins
+             'timestamps': [now, now]},
+            ], analyzed)
+        # On updates this applies too
+        result = repo.get_inserter(partial=True, profiles=['p1'])
+        result.startTestRun()
+        result.status(
+            test_id='testid', test_tags=set(['p1']), test_status='fail',
+            timestamp=now)
+        result.stopTestRun()
+        analyzed = self.get_failing_list(repo)
+        self.assertEqual([
+            {'details': {},
+             'id': 'testid',
+             'status': 'fail',
+             'tags': set(['p1']),
+             'timestamps': [now, now]},
+            ], analyzed)
+        # Including fail -> success transitions.
+        result = repo.get_inserter(partial=True, profiles=['p1'])
+        result.startTestRun()
+        result.status(
+            test_id='testid', test_tags=set(['p1']), test_status='success',
+            timestamp=now)
+        result.stopTestRun()
+        analyzed = self.get_failing_list(repo)
+        self.assertEqual([], analyzed)

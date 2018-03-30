@@ -21,9 +21,11 @@ except ImportError:
     import dbm
 import errno
 from operator import methodcaller
+import os
 import os.path
 import sys
 import tempfile
+import traceback
 
 import subunit.v2
 from subunit import TestProtocolClient
@@ -45,12 +47,26 @@ def atomicish_rename(source, target):
     os.rename(source, target)
 
 
+def get_base(url='.', use_venv=True):
+    virtualenv_path = os.getenv("VIRTUAL_ENV")
+    if virtualenv_path:
+        virtualenv = os.path.basename(virtualenv_path)
+        base = os.path.join(
+            os.path.expanduser(url),
+            '.testrepository',
+            virtualenv
+        )
+    else:
+        base = os.path.join(os.path.expanduser(url), '.testrepository')
+    return base
+
+
 class RepositoryFactory(AbstractRepositoryFactory):
 
     def initialise(klass, url):
         """Create a repository at url/path."""
-        base = os.path.join(os.path.expanduser(url), '.testrepository')
-        os.mkdir(base)
+        base = get_base(url)
+        os.makedirs(base)
         stream = open(os.path.join(base, 'format'), 'wt')
         try:
             stream.write('1\n')
@@ -61,8 +77,7 @@ class RepositoryFactory(AbstractRepositoryFactory):
         return result
 
     def open(self, url):
-        path = os.path.expanduser(url)
-        base = os.path.join(path, '.testrepository')
+        base = get_base(url)
         try:
             stream = open(os.path.join(base, 'format'), 'rt')
         except (IOError, OSError) as e:

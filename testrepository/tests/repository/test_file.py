@@ -55,7 +55,7 @@ class TestFileRepository(ResourcedTestCase):
 
     def test_initialise(self):
         self.useFixture(FileRepositoryFixture(self))
-        base = os.path.join(self.tempdir, '.testrepository')
+        base = file.get_base(self.tempdir)
         stream = open(os.path.join(base, 'format'), 'rt')
         try:
             contents = stream.read()

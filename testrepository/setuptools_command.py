@@ -32,6 +32,7 @@ import os
 import sys
 
 from testrepository import commands
+from testrepository.repository.file import get_base
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -78,7 +79,7 @@ class Testr(cmd.Command):
     def run(self):
         """Set up testr repo, then run testr"""
         logger.info("run called")
-        if not os.path.isdir(".testrepository"):
+        if not os.path.isdir(get_base()):
             self._run_testr("init")
 
         if self.coverage:

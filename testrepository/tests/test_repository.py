@@ -113,8 +113,9 @@ class FailingCase:
     def run(self, result):
         result.startTest(self)
         result.addError(
-            self, None, details={'traceback': content.text_content("")})
+            self, None, details={'traceback': content.text_content("tb")})
         result.stopTest(self)
+
 
 def make_test(id, should_pass):
     """Make a test."""
@@ -409,7 +410,7 @@ class TestRepositoryContract(ResourcedTestCase):
         finally:
             log.stopTestRun()
         self.assertEqual(
-            log._events, [
+            [tuple(ev) for ev in log._events], [
             ('startTestRun',),
             ('status',
              'testrepository.tests.test_repository.Case.method',
@@ -465,7 +466,7 @@ class TestRepositoryContract(ResourcedTestCase):
         finally:
             log.stopTestRun()
         self.assertEqual(
-            log._events,
+            [tuple(ev) for ev in log._events],
             [
             ('startTestRun',),
             ('status',

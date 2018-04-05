@@ -90,7 +90,7 @@ class TestCommand(ResourcedTestCase):
         finally:
             log.stopTestRun()
         self.assertEqual(
-            log._events, [
+            [tuple(ev) for ev in log._events], [
             ('startTestRun',),
             ('status', 'failing', 'inprogress', None, True, None, None, False,
              None, None, Wildcard),

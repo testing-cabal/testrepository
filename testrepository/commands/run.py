@@ -32,6 +32,7 @@ from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
 from testrepository.commands import Command
 from testrepository.commands.load import load
+from testrepository.repository import RepositoryNotFound
 from testrepository.ui import decorator
 from testrepository.testcommand import TestCommand, testrconf_help
 from testrepository.testlist import parse_list
@@ -134,6 +135,10 @@ class run(Command):
             help="Only some tests will be run. Implied by --failing."),
         optparse.Option("--subunit", action="store_true",
             default=False, help="Display results in subunit format."),
+        optparse.Option(
+            "--force-init", action="store_true",
+            default=False,
+            help="Initialise the repository if it does not exist already"),
         optparse.Option("--full-results", action="store_true",
             default=False,
             help="No-op - deprecated and kept only for backwards compat."),
@@ -168,7 +173,13 @@ class run(Command):
         return ids
 
     def run(self):
-        repo = self.repository_factory.open(self.ui.here)
+        try:
+            repo = self.repository_factory.open(self.ui.here)
+        except RepositoryNotFound:
+            if self.ui.options.force_init:
+                repo = self.repository_factory.initialise(self.ui.here)
+            else:
+                raise
         if self.ui.options.failing or self.ui.options.analyze_isolation:
             ids = self._find_failing(repo)
         else:

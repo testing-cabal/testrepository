@@ -19,9 +19,7 @@ from math import ceil
 import optparse
 import re
 
-from extras import try_import
 import subunit
-v2_avail = try_import('subunit.ByteStreamToStreamResult')
 import testtools
 from testtools import (
     TestByTestResult,
@@ -76,16 +74,10 @@ class ReturnCodeToSubunit(object):
                 # - which is not guaranteed in an arbitrary stream endpoint, so
                 # injecting a \n gives us such a guarantee.
                 self.source.write(_b('\n'))
-            if v2_avail:
-                stream = subunit.StreamResultToBytes(self.source)
-                stream.status(test_id='process-returncode', test_status='fail',
-                    file_name='traceback', mime_type='text/plain;charset=utf8',
-                    file_bytes=('returncode %d' % returncode).encode('utf8'))
-            else:
-                self.source.write(_b('test: process-returncode\n'
-                    'failure: process-returncode [\n'
-                    ' returncode %d\n'
-                    ']\n' % returncode))
+            stream = subunit.StreamResultToBytes(self.source)
+            stream.status(test_id='process-returncode', test_status='fail',
+                file_name='traceback', mime_type='text/plain;charset=utf8',
+                file_bytes=('returncode %d' % returncode).encode('utf8'))
         self.source.seek(0)
         self.done = True
 

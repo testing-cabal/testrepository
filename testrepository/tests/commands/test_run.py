@@ -19,13 +19,11 @@ import os.path
 from subprocess import PIPE
 import tempfile
 
-from extras import try_import
 from fixtures import (
     Fixture,
     MonkeyPatch,
     )
 import subunit
-v2_avail = try_import('subunit.ByteStreamToStreamResult')
 from subunit import RemotedTestCase
 from testscenarios.scenarios import multiply_scenarios
 from testtools.compat import _b
@@ -298,14 +296,11 @@ class TestCommand(ResourcedTestCase):
             cmd.repository_factory.repos[ui.here].get_test_run(1)._partial)
 
     def test_load_failure_exposed(self):
-        if v2_avail:
-            buffer = BytesIO()
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(test_id='foo', test_status='inprogress')
-            stream.status(test_id='foo', test_status='fail')
-            subunit_bytes = buffer.getvalue()
-        else:
-            subunit_bytes = b'test: foo\nfailure: foo\n'
+        buffer = BytesIO()
+        stream = subunit.StreamResultToBytes(buffer)
+        stream.status(test_id='foo', test_status='inprogress')
+        stream.status(test_id='foo', test_status='fail')
+        subunit_bytes = buffer.getvalue()
         ui, cmd = self.get_test_ui_and_cmd(options=[('quiet', True),],
             proc_outputs=[subunit_bytes])
         cmd.repository_factory = memory.RepositoryFactory()
@@ -316,14 +311,11 @@ class TestCommand(ResourcedTestCase):
         self.assertEqual(1, result)
 
     def test_process_exit_code_nonzero_causes_synthetic_error_test(self):
-        if v2_avail:
-            buffer = BytesIO()
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(test_id='foo', test_status='inprogress')
-            stream.status(test_id='foo', test_status='success')
-            subunit_bytes = buffer.getvalue()
-        else:
-            subunit_bytes = b'test: foo\nsuccess: foo\n'
+        buffer = BytesIO()
+        stream = subunit.StreamResultToBytes(buffer)
+        stream.status(test_id='foo', test_status='inprogress')
+        stream.status(test_id='foo', test_status='success')
+        subunit_bytes = buffer.getvalue()
         ui, cmd = self.get_test_ui_and_cmd(options=[('quiet', True),],
             proc_outputs=[subunit_bytes],
             proc_results=[2])
@@ -390,20 +382,16 @@ class TestCommand(ResourcedTestCase):
 
     def test_until_failure(self):
         ui, cmd = self.get_test_ui_and_cmd(options=[('until_failure', True)])
-        if v2_avail:
-            buffer = BytesIO()
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(test_id='foo', test_status='inprogress')
-            stream.status(test_id='foo', test_status='success')
-            subunit_bytes1 = buffer.getvalue()
-            buffer.seek(0)
-            buffer.truncate()
-            stream.status(test_id='foo', test_status='inprogress')
-            stream.status(test_id='foo', test_status='fail')
-            subunit_bytes2 = buffer.getvalue()
-        else:
-            subunit_bytes1 = b'test: foo\nsuccess: foo\n'
-            subunit_bytes2 = b'test: foo\nfailure: foo\n'
+        buffer = BytesIO()
+        stream = subunit.StreamResultToBytes(buffer)
+        stream.status(test_id='foo', test_status='inprogress')
+        stream.status(test_id='foo', test_status='success')
+        subunit_bytes1 = buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate()
+        stream.status(test_id='foo', test_status='inprogress')
+        stream.status(test_id='foo', test_status='fail')
+        subunit_bytes2 = buffer.getvalue()
         ui.proc_outputs = [
             subunit_bytes1, # stream one, works
             subunit_bytes2, # stream two, fails
@@ -527,15 +515,11 @@ class TestReturnCodeToSubunit(ResourcedTestCase):
         proc.returncode = 1
         stream = run.ReturnCodeToSubunit(proc)
         content = accumulate(stream, self.reader)
-        if v2_avail:
-            buffer = BytesIO()
-            buffer.write(b'foo\nbar\n')
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(test_id='process-returncode', test_status='fail',
-                file_name='traceback', mime_type='text/plain;charset=utf8',
-                file_bytes=b'returncode 1')
-            expected_content = buffer.getvalue()
-        else:
-            expected_content = _b('foo\nbar\ntest: process-returncode\n'
-                'failure: process-returncode [\n returncode 1\n]\n')
+        buffer = BytesIO()
+        buffer.write(b'foo\nbar\n')
+        stream = subunit.StreamResultToBytes(buffer)
+        stream.status(test_id='process-returncode', test_status='fail',
+            file_name='traceback', mime_type='text/plain;charset=utf8',
+            file_bytes=b'returncode 1')
+        expected_content = buffer.getvalue()
         self.assertEqual(expected_content, content)

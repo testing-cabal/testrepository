@@ -14,9 +14,7 @@
 
 """In memory storage of test results."""
 
-from extras import try_import
-
-OrderedDict = try_import('collections.OrderedDict', dict)
+from collections import OrderedDict
 from io import BytesIO
 from operator import methodcaller
 

@@ -19,9 +19,6 @@ from operator import methodcaller
 import optparse
 import threading
 
-from extras import try_import
-v2_avail = try_import('subunit.ByteStreamToStreamResult')
-
 import subunit.test_results
 import testtools
 
@@ -104,25 +101,9 @@ class load(Command):
             [result], add=['worker-%d' % pos])
         def make_tests():
             for pos, stream in enumerate(streams):
-                if v2_avail:
-                    # Calls StreamResult API.
-                    case = subunit.ByteStreamToStreamResult(
-                        stream, non_subunit_name='stdout')
-                else:
-                    # Calls TestResult API.
-                    case = subunit.ProtocolTestCase(stream)
-                    def wrap_result(result):
-                        # Wrap in a router to mask out startTestRun/stopTestRun from the
-                        # ExtendedToStreamDecorator.
-                        result = testtools.StreamResultRouter(
-                            result, do_start_stop_run=False)
-                        # Wrap that in ExtendedToStreamDecorator to convert v1 calls to
-                        # StreamResult.
-                        return testtools.ExtendedToStreamDecorator(result)
-                    # Now calls StreamResult API :).
-                    case = testtools.DecorateTestCaseResult(case, wrap_result,
-                        methodcaller('startTestRun'),
-                        methodcaller('stopTestRun'))
+                # Calls StreamResult API.
+                case = subunit.ByteStreamToStreamResult(
+                    stream, non_subunit_name='stdout')
                 decorate = partial(mktagger, pos)
                 case = testtools.DecorateTestCaseResult(case, decorate)
                 yield (case, str(pos))

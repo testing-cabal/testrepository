@@ -38,7 +38,7 @@ from testtools.matchers import (
 
 from testrepository.commands import run
 from testrepository.ui.model import UI, ProcessModel
-from testrepository.repository import memory
+from testrepository.repository import memory, RepositoryNotFound
 from testrepository.testlist import write_list
 from testrepository.tests import ResourcedTestCase, Wildcard
 from testrepository.tests.stubpackage import TempDirResource
@@ -474,6 +474,30 @@ class TestCommand(ResourcedTestCase):
         self.assertThat(params[1][1], Equals(['ab']))
         self.assertThat(params[2][1], Equals(['cd']))
         self.assertThat(params[3][1], Equals(['ef']))
+
+    def test_fails_if_repo_doesnt_exist(self):
+        ui, cmd = self.get_test_ui_and_cmd(args=())
+        cmd.repository_factory = memory.RepositoryFactory()
+        self.set_config(
+            '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
+        self.assertEqual(3, cmd.execute())
+        self.assertEqual(1, len(ui.outputs))
+        self.assertEqual('error', ui.outputs[0][0])
+        self.assertThat(ui.outputs[0][1], MatchesException(RepositoryNotFound))
+
+    def test_force_init(self):
+        ui, cmd = self.get_test_ui_and_cmd(options=[('force_init', True)])
+        cmd.repository_factory = memory.RepositoryFactory()
+        self.set_config(
+            '[DEFAULT]\ntest_command=foo $IDOPTION\ntest_id_option=--load-list $IDFILE\n')
+        self.assertEqual(0, cmd.execute())
+        self.assertEqual([
+            ('values', [('running', 'foo ')]),
+            ('popen', ('foo ',),
+             {'shell': True, 'stdin': PIPE, 'stdout': PIPE}),
+            ('results', Wildcard),
+            ('summary', True, 0, None, Wildcard, Wildcard, [('id', 0, None)]),
+            ], ui.outputs)
 
 
 def read_all(stream):

@@ -19,7 +19,7 @@ Test results are inserted using subunit (and thus anything that can output
 subunit or be converted into a subunit stream can be accepted).
 
 A mailing list for discussion, usage and development is at
-https://launchpad.net/~testrepository-dev - all are welcome to join. Some folk
+https://launchpad.net/~testrepository-dev - all are welcome to join. Some 'folk'
 hang out on #testrepository on irc.freenode.net.
 
 CI for the project is at https://travis-ci.org/testing-cabal/testrepository

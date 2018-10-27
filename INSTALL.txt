@@ -1,5 +1,5 @@
 Installing Test Repository
-++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Run time dependencies
 ~~~~~~~~~~~~~~~~~~~~~

@@ -20,6 +20,9 @@ CHANGES
 * Unexpected errors reading streams from a file repository now propogate the
   correct exception. (Matthew Treinish, Robert Collins, #1409936)
 
+* testrepository now requires at least version 0.0.11 of the subunit Python
+  module.  (Jelmer Vernooĳ)
+
 0.0.20
 ++++++
 

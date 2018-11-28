@@ -19,9 +19,7 @@ import os.path
 import optparse
 import re
 
-from extras import try_import
 import subunit
-v2_avail = try_import('subunit.ByteStreamToStreamResult')
 from testtools.compat import _b
 from testtools.matchers import (
     Equals,
@@ -185,14 +183,11 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_get_run_command_default_and_list_expands(self):
         ui, command = self.get_test_ui_and_cmd()
-        if v2_avail:
-            buffer = BytesIO()
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(test_id='returned', test_status='exists')
-            stream.status(test_id='ids', test_status='exists')
-            subunit_bytes = buffer.getvalue()
-        else:
-            subunit_bytes = _b('returned\nids\n')
+        buffer = BytesIO()
+        stream = subunit.StreamResultToBytes(buffer)
+        stream.status(test_id='returned', test_status='exists')
+        stream.status(test_id='ids', test_status='exists')
+        subunit_bytes = buffer.getvalue()
         ui.proc_outputs = [subunit_bytes]
         ui.options = optparse.Values()
         ui.options.parallel = True
@@ -305,14 +300,11 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual(expected_cmd, fixture.list_cmd)
 
     def test_list_tests_parsing(self):
-        if v2_avail:
-            buffer = BytesIO()
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(test_id='returned', test_status='exists')
-            stream.status(test_id='ids', test_status='exists')
-            subunit_bytes = buffer.getvalue()
-        else:
-            subunit_bytes = _b('returned\nids\n')
+        buffer = BytesIO()
+        stream = subunit.StreamResultToBytes(buffer)
+        stream.status(test_id='returned', test_status='exists')
+        stream.status(test_id='ids', test_status='exists')
+        subunit_bytes = buffer.getvalue()
         ui, command = self.get_test_ui_and_cmd()
         ui.proc_outputs = [subunit_bytes]
         self.set_config(
@@ -548,14 +540,11 @@ class TestTestCommand(ResourcedTestCase):
         self.assertEqual([], ui.outputs)
 
     def test_filter_tests_by_regex_only(self):
-        if v2_avail:
-            buffer = BytesIO()
-            stream = subunit.StreamResultToBytes(buffer)
-            stream.status(test_id='returned', test_status='exists')
-            stream.status(test_id='ids', test_status='exists')
-            subunit_bytes = buffer.getvalue()
-        else:
-            subunit_bytes = _b('returned\nids\n')
+        buffer = BytesIO()
+        stream = subunit.StreamResultToBytes(buffer)
+        stream.status(test_id='returned', test_status='exists')
+        stream.status(test_id='ids', test_status='exists')
+        subunit_bytes = buffer.getvalue()
         ui, command = self.get_test_ui_and_cmd()
         ui.proc_outputs = [subunit_bytes]
         self.set_config(

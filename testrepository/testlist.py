@@ -16,9 +16,8 @@
 
 from io import BytesIO
 
-from extras import try_import
-bytestream_to_streamresult = try_import('subunit.ByteStreamToStreamResult')
-stream_result = try_import('testtools.testresult.doubles.StreamResult')
+from subunit import ByteStreamToStreamResult
+from testtools.testresult.doubles import StreamResult
 
 from testtools.compat import _b, _u
 
@@ -35,26 +34,14 @@ def write_list(stream, test_ids):
 
 def parse_list(list_bytes):
     """Parse list_bytes into a list of test ids."""
-    return _v1(list_bytes)
+    return [id.strip() for id in list_bytes.decode('utf8').split(_u('\n'))
+            if id.strip()]
 
 
 def parse_enumeration(enumeration_bytes):
     """Parse enumeration_bytes into a list of test_ids."""
-    # If subunit v2 is available, use it.
-    if bytestream_to_streamresult is not None:
-        return _v2(enumeration_bytes)
-    else:
-        return _v1(enumeration_bytes)
-
-
-def _v1(list_bytes):
-    return [id.strip() for id in list_bytes.decode('utf8').split(_u('\n'))
-        if id.strip()]
-
-
-def _v2(list_bytes):
-    parser = bytestream_to_streamresult(BytesIO(list_bytes),
+    parser = ByteStreamToStreamResult(BytesIO(enumeration_bytes),
         non_subunit_name='stdout')
-    result = stream_result()
+    result = StreamResult()
     parser.run(result)
     return [event[1] for event in result._events if event[2]=='exists']

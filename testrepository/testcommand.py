@@ -33,7 +33,7 @@ import multiprocessing
 from textwrap import dedent
 
 from fixtures import Fixture
-v2 = try_import('subunit.v2')
+from subunit import ByteStreamToStreamResult
 
 from testrepository import results
 from testrepository.testlist import (
@@ -300,11 +300,10 @@ class TestListingFixture(Fixture):
                 stdout=subprocess.PIPE, stdin=subprocess.PIPE)
             out, err = run_proc.communicate()
             if run_proc.returncode != 0:
-                if v2 is not None:
-                    new_out = io.BytesIO()
-                    v2.ByteStreamToStreamResult(io.BytesIO(out), 'stdout').run(
-                        results.CatFiles(new_out))
-                    out = new_out.getvalue()
+                new_out = io.BytesIO()
+                ByteStreamToStreamResult(io.BytesIO(out), 'stdout').run(
+                    results.CatFiles(new_out))
+                out = new_out.getvalue()
                 self.ui.output_stream(io.BytesIO(out))
                 self.ui.output_stream(io.BytesIO(err))
                 raise ValueError(

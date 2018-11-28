@@ -20,8 +20,6 @@ import signal
 import subunit
 import sys
 
-from extras import try_import
-v2_avail = try_import('subunit.ByteStreamToStreamResult')
 import testtools
 from testtools import ExtendedToStreamDecorator, StreamToExtendedDecorator
 from testtools.compat import unicode_output_stream, _u
@@ -107,11 +105,7 @@ class UI(ui.AbstractUI):
 
     def make_result(self, get_id, test_command, previous_run=None):
         if getattr(self.options, 'subunit', False):
-            if v2_avail:
-                serializer = subunit.StreamResultToBytes(self._stdout)
-            else:
-                serializer = StreamToExtendedDecorator(
-                    subunit.TestProtocolClient(self._stdout))
+            serializer = subunit.StreamResultToBytes(self._stdout)
             # By pass user transforms - just forward it all,
             result = serializer
             # and interpret everything as success.

@@ -33,21 +33,26 @@ Quick Start
 ~~~~~~~~~~~
 
 Create a config file::
-  $ touch .testr.conf
+
+    $ touch .testr.conf
 
 Create a repository::
-  $ testr init
+
+    $ testr init
 
 Load a test run into the repository::
-  $ testr load < testrun
+
+    $ testr load < testrun
 
 Query the repository::
-  $ testr stats
-  $ testr last
-  $ testr failing
+
+    $ testr stats
+    $ testr last
+    $ testr failing
 
 Delete a repository::
-  $ rm -rf .testrepository
+
+    $ rm -rf .testrepository
 
 Documentation
 ~~~~~~~~~~~~~

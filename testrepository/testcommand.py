@@ -14,20 +14,14 @@
 
 """The test command that test repository knows how to run."""
 
-from extras import (
-    try_import,
-    try_imports,
-    )
-
 from collections import defaultdict
-ConfigParser = try_imports(['ConfigParser', 'configparser'])
+import configparser
 import io
 import itertools
 import operator
 import os.path
 import re
 import subprocess
-import sys
 import tempfile
 import multiprocessing
 from textwrap import dedent
@@ -204,7 +198,7 @@ class TestListingFixture(Fixture):
             list_variables['IDLIST'] = default_idstr
             # In theory we should also support casting this into IDFILE etc -
             # needs this horrible class refactored.
-        except ConfigParser.NoOptionError as e:
+        except configparser.NoOptionError as e:
             if e.message != "No option 'test_id_list_default' in section: 'DEFAULT'":
                 raise
             default_idstr = None
@@ -338,7 +332,7 @@ class TestListingFixture(Fixture):
                 def subst(match):
                     return variables.get(match.groups(1)[0], '')
                 cmd = re.sub(variable_regex, subst, instance_prefix)
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 # Per-instance execution environment not configured.
                 pass
         return instance, cmd
@@ -448,7 +442,7 @@ class TestListingFixture(Fixture):
         try:
             concurrency_cmd = self._parser.get(
                 'DEFAULT', 'test_run_concurrency')
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             return None
         run_proc = self.ui.subprocess_Popen(concurrency_cmd, shell=True,
             stdout=subprocess.PIPE, stdin=subprocess.PIPE)
@@ -525,7 +519,7 @@ class TestCommand(Fixture):
 
     def get_parser(self):
         """Get a parser with the .testr.conf in it."""
-        parser = ConfigParser.ConfigParser()
+        parser = configparser.ConfigParser()
         # This possibly should push down into UI.
         if self.ui.here == 'memory:':
             return parser
@@ -543,7 +537,7 @@ class TestCommand(Fixture):
         parser = self.get_parser()
         try:
             command = parser.get('DEFAULT', 'test_command')
-        except ConfigParser.NoOptionError as e:
+        except configparser.NoOptionError as e:
             if e.message != "No option 'test_command' in section: 'DEFAULT'":
                 raise
             raise ValueError("No test_command option present in .testr.conf")
@@ -554,7 +548,7 @@ class TestCommand(Fixture):
             # IDOPTION is used, we must have it configured.
             try:
                 idoption = parser.get('DEFAULT', 'test_id_option')
-            except ConfigParser.NoOptionError as e:
+            except configparser.NoOptionError as e:
                 if e.message != "No option 'test_id_option' in section: 'DEFAULT'":
                     raise
                 raise ValueError("No test_id_option option present in .testr.conf")
@@ -563,13 +557,13 @@ class TestCommand(Fixture):
             # LISTOPT is used, test_list_option must be configured.
             try:
                 listopt = parser.get('DEFAULT', 'test_list_option')
-            except ConfigParser.NoOptionError as e:
+            except configparser.NoOptionError as e:
                 if e.message != "No option 'test_list_option' in section: 'DEFAULT'":
                     raise
                 raise ValueError("No test_list_option option present in .testr.conf")
         try:
             group_regex = parser.get('DEFAULT', 'group_regex')
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             group_regex = None
         if group_regex:
             def group_callback(test_id, regex=re.compile(group_regex)):
@@ -595,7 +589,7 @@ class TestCommand(Fixture):
         parser = self.get_parser()
         try:
             tags = parser.get('DEFAULT', 'filter_tags')
-        except ConfigParser.NoOptionError as e:
+        except configparser.NoOptionError as e:
             if e.message != "No option 'filter_tags' in section: 'DEFAULT'":
                 raise
             return set()
@@ -610,7 +604,7 @@ class TestCommand(Fixture):
         while len(self._instances) < concurrency:
             try:
                 cmd = self.get_parser().get('DEFAULT', 'instance_provision')
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 # Instance allocation not configured
                 return None
             variable_regex = '\$INSTANCE_COUNT'

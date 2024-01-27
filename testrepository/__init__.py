@@ -25,6 +25,6 @@ The tests package contains tests and test specific support code.
 # Yes, this is not PEP-396 compliant. It predates that.
 from pbr.version import VersionInfo
 
-_v = VersionInfo('mock').semantic_version()
+_v = VersionInfo('testrepository').semantic_version()
 version = _v.release_string()
 __version__ = _v.version_tuple()

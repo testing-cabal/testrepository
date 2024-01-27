@@ -505,7 +505,7 @@ class TestCommand(Fixture):
         self._allocated_instances = None
         try:
             dispose_cmd = self.get_parser().get('DEFAULT', 'instance_dispose')
-        except (ValueError, ConfigParser.NoOptionError):
+        except (ValueError, configparser.NoOptionError):
             return
         variable_regex = '\$INSTANCE_IDS'
         dispose_cmd = re.sub(variable_regex, ' '.join(sorted(instance.decode('utf') for instance in instances)),

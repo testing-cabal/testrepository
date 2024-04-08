@@ -19,9 +19,9 @@ from datetime import (
     timedelta,
     )
 import doctest
+import iso8601
 
 from subunit import (
-    iso8601,
     v2,
     )
 
@@ -131,7 +131,7 @@ def run_timed(id, duration, result, enumeration=False):
     
     :param enumeration: If True, don't run, just enumerate.
     """
-    start = datetime.now(tz=iso8601.Utc())
+    start = datetime.now(tz=iso8601.UTC)
     if enumeration:
         result.status(test_id=id, test_status='exists', timestamp=start)
     else:
@@ -361,7 +361,7 @@ class TestRepositoryContract(ResourcedTestCase):
     def test_get_test_run_preserves_time(self):
         self.skip('Fix me before releasing.')
         # The test run outputs the time events that it received.
-        now = datetime(2001, 1, 1, 0, 0, 0, tzinfo=iso8601.Utc())
+        now = datetime(2001, 1, 1, 0, 0, 0, tzinfo=iso8601.UTC)
         second = timedelta(seconds=1)
         repo = self.repo_impl.initialise(self.sample_url)
         test_id = self.getUniqueString()

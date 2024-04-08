@@ -43,7 +43,7 @@ jobs:
 
       - name: Docs
         run: |
-          make clean-sphinx docs
+          make -C doc html
 
   success:
     needs: build

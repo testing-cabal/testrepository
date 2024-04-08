@@ -13,3 +13,15 @@
 # limitations under that license.
 
 """Tests for ui modules."""
+
+import unittest
+
+def test_suite():
+    names = [
+        'cli',
+        'decorator',
+        ]
+    module_names = ['testrepository.tests.ui.test_' + name for name in
+        names]
+    loader = unittest.TestLoader()
+    return loader.loadTestsFromNames(module_names)

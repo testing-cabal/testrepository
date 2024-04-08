@@ -19,7 +19,7 @@ from io import BytesIO
 from tempfile import NamedTemporaryFile
 
 import subunit
-from subunit import iso8601
+import iso8601
 
 import testtools
 from testtools.compat import _b
@@ -239,7 +239,7 @@ class TestCommandLoad(ResourcedTestCase):
     def test_load_timed_run(self):
         buffer = BytesIO()
         stream = subunit.StreamResultToBytes(buffer)
-        time = datetime(2011, 1, 1, 0, 0, 1, tzinfo=iso8601.Utc())
+        time = datetime(2011, 1, 1, 0, 0, 1, tzinfo=iso8601.UTC)
         stream.status(test_id='foo', test_status='inprogress', timestamp=time)
         stream.status(test_id='foo', test_status='success',
             timestamp=time+timedelta(seconds=2))
@@ -265,7 +265,7 @@ class TestCommandLoad(ResourcedTestCase):
         # tests, how many more failures, how much longer it takes.
         buffer = BytesIO()
         stream = subunit.StreamResultToBytes(buffer)
-        time = datetime(2011, 1, 2, 0, 0, 1, tzinfo=iso8601.Utc())
+        time = datetime(2011, 1, 2, 0, 0, 1, tzinfo=iso8601.UTC)
         stream.status(test_id='foo', test_status='inprogress', timestamp=time)
         stream.status(test_id='foo', test_status='fail',
             timestamp=time+timedelta(seconds=2))
@@ -287,9 +287,9 @@ class TestCommandLoad(ResourcedTestCase):
         # Insert a run with different results.
         inserter.startTestRun()
         inserter.status(test_id=self.id(), test_status='inprogress',
-            timestamp=datetime(2011, 1, 1, 0, 0, 1, tzinfo=iso8601.Utc()))
+            timestamp=datetime(2011, 1, 1, 0, 0, 1, tzinfo=iso8601.UTC))
         inserter.status(test_id=self.id(), test_status='fail',
-            timestamp=datetime(2011, 1, 1, 0, 0, 10, tzinfo=iso8601.Utc()))
+            timestamp=datetime(2011, 1, 1, 0, 0, 10, tzinfo=iso8601.UTC))
         inserter.stopTestRun()
         self.assertEqual(1, cmd.execute())
         self.assertEqual(

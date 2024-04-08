@@ -14,7 +14,7 @@
 
 """The testrepository tests and test only code."""
 
-import os
+import unittest
 
 import testresources
 from testscenarios import generate_scenarios
@@ -54,11 +54,33 @@ class StubTestCommand:
         return self.filter_tags
 
 
-def load_tests(loader, standard_tests, pattern):
-    # top level directory cached on loader instance
-    this_dir = os.path.dirname(__file__)
-    package_tests = loader.discover(start_dir=this_dir, pattern=pattern)
+def test_suite():
+    packages = [
+        'arguments',
+        'commands',
+        'repository',
+        'ui',
+        ]
+    names = [
+        'arguments',
+        'commands',
+        'matchers',
+        'monkeypatch',
+        'repository',
+        'results',
+        'setup',
+        'stubpackage',
+        'testcommand',
+        'testr',
+        'ui',
+        ]
+    module_names = ['testrepository.tests.test_' + name for name in names]
+    loader = unittest.TestLoader()
+    suite = loader.loadTestsFromNames(module_names)
     result = testresources.OptimisingTestSuite()
-    result.addTests(generate_scenarios(standard_tests))
-    result.addTests(generate_scenarios(package_tests))
+    result.addTests(generate_scenarios(suite))
+    for pkgname in packages:
+        pkg = __import__('testrepository.tests.' + pkgname, globals(),
+            locals(), ['test_suite'])
+        result.addTests(generate_scenarios(pkg.test_suite()))
     return result

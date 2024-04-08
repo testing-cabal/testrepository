@@ -8,6 +8,9 @@ NEXT (In development)
 CHANGES
 -------
 
+* testrepository now uses ``hatch`` rather than ``pbr``.
+  (Jelmer Vernooĳ)
+
 * setup.py testr now supports different coverage names.
   (Marc Abramowitz, #1298398)
 

@@ -27,7 +27,7 @@ check-xml:
 	python -m subunit.run testrepository.tests.test_suite | subunit2junitxml -o test.xml -f | subunit2pyunit
 
 release:
-	python3 -m build --sdist --wheel --outdir dist
+	hatchling build
 
 README.rst: editable testrepository/commands/quickstart.py
 	./testr quickstart > $@

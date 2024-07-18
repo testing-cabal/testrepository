@@ -1,30 +1,23 @@
-Design / Architecture of Test Repository
-++++++++++++++++++++++++++++++++++++++++
+# Design
 
-Values
-~~~~~~
+## Values
 
 Code reuse.
 Focus on the project.
 Do one thing well.
 
-Goals
-~~~~~
+## Goals
 
-Achieve a Clean UI, responsive UI, small-tools approach. Simulataneously have
+Achieve a Clean UI, responsive UI, small-tools approach. Simultaneously have
 a small clean code base which is easily approachable.
 
-Data model/storage
-~~~~~~~~~~~~~~~~~~
+## Data model/storage
 
 testrepository stores subunit streams as subunit streams in .testrespository
-with simple additional metadata. See the MANUAL for documentation on the
-repository layout. The key design elements are that streams are stored
-verbatim, and a testr managed stream called 'failing' is used  to track the
-current failures.
+with simple additional metadata. See the [manual](../repositories.md) for documentation on the repository layout.
+The key design elements are that streams are stored verbatim, and a testr managed stream called 'failing' is used  to track the current failures.
 
-Code layout
-~~~~~~~~~~~
+## Code layout
 
 One conceptual thing per module, packages for anything where multiple types
 are expected (e.g. testrepository.commands, testrespository.ui).
@@ -38,15 +31,13 @@ The tests for the code in testrepository.foo.bar is in
 testrepository.tests.foo.test_bar. Interface tests for testrepository.foo is
 in testrepository.tests.test_foo.
 
-External integration
-~~~~~~~~~~~~~~~~~~~~
+## External integration
+
 
 Test Repository command, ui, parsing etc objects should all be suitable for
 reuse from other programs.
 
-Threads/concurrency
-~~~~~~~~~~~~~~~~~~~
+## Threads/concurrency
 
 In general using any public interface is fine, but keeping syncronisation
 needs to a minimum for code readability.
-

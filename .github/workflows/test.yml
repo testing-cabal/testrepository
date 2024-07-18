@@ -42,10 +42,6 @@ jobs:
         run: |
           python -W once -m testtools.run testrepository.tests.test_suite
 
-      - name: Docs
-        run: |
-          make -C doc html
-
   success:
     needs: build
     runs-on: ubuntu-latest

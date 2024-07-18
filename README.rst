@@ -1,8 +1,8 @@
 Test Repository
 +++++++++++++++
 
-.. image:: https://travis-ci.org/testing-cabal/testrepository.svg?branch=master
-    :target: https://travis-ci.org/testing-cabal/testrepository
+.. image:: https://badgen.net/github/checks/testing-cabal/testrepository
+    :target: https://github.com/testing-cabal/testrepository/actions?query=event%3Apush+branch%3Amaster
 
 Overview
 ~~~~~~~~
@@ -22,7 +22,7 @@ A mailing list for discussion, usage and development is at
 https://launchpad.net/~testrepository-dev - all are welcome to join. Some folk
 hang out on #testrepository on irc.freenode.net.
 
-CI for the project is at https://travis-ci.org/testing-cabal/testrepository
+CI for the project is GitHub Actions at https://github.com/testing-cabal/testrepository
 
 Licensing
 ~~~~~~~~~

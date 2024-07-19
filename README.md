@@ -1,11 +1,8 @@
-Test Repository
-+++++++++++++++
+# Test Repository
 
-.. image:: https://badgen.net/github/checks/testing-cabal/testrepository
-    :target: https://github.com/testing-cabal/testrepository/actions?query=event%3Apush+branch%3Amaster
+![build status](https://badgen.net/github/checks/testing-cabal/testrepository)
 
-Overview
-~~~~~~~~
+## Overview
 
 This project provides a database of test results which can be used as part of
 developer workflow to ensure/check things like:
@@ -22,42 +19,49 @@ A mailing list for discussion, usage and development is at
 https://launchpad.net/~testrepository-dev - all are welcome to join. Some folk
 hang out on #testrepository on irc.freenode.net.
 
-CI for the project is GitHub Actions at https://github.com/testing-cabal/testrepository
+CI for the project is GitHub Actions at https://github.com/testing-cabal/testrepository.
 
-Licensing
-~~~~~~~~~
+## Licensing
 
 Test Repository is under BSD / Apache 2.0 licences. See the file COPYING in the source for details.
 
-Quick Start
-~~~~~~~~~~~
+## Quick Start
 
 Create a config file::
 
-    $ touch .testr.conf
+```sh
+  $ touch .testr.conf
+```
 
 Create a repository::
 
-    $ testr init
+  ```sh
+  $ testr init
+```
 
 Load a test run into the repository::
 
-    $ testr load < testrun
+```sh
+  $ testr load < testrun
+```
 
 Query the repository::
 
-    $ testr stats
-    $ testr last
-    $ testr failing
+```sh
+  $ testr stats
+  $ testr last
+  $ testr failing
+```
 
 Delete a repository::
 
-    $ rm -rf .testrepository
+```sh
+  $ rm -rf .testrepository
+```
 
-Documentation
-~~~~~~~~~~~~~
+## Documentation
 
 More detailed documentation including design and implementation details, a
 user manual, and guidelines for development of Test Repository itself can be
-found at https://testrepository.readthedocs.org/en/latest, or in the source
+found at https://testrepository.github.io, or in the source
 tree at doc/ (run make -C doc html).

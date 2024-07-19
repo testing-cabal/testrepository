@@ -1,13 +1,35 @@
-name: Deploy mdBook
-on: [push]
+name: Deploy Book
+on:
+  push:
+    branches:
+      - main
+
 jobs:
-  build:
+  build-book:
+    name: Build Book
     runs-on: ubuntu-latest
     permissions:
-      contents: write # To push a branch
-      pull-requests: write # To create a PR from that branch
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: XAMPPRocky/deploy-mdbook@v1.1
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install mdbook
+        run: cargo install mdbook --version "^0.4" --locked
+
+      - name: Run mdbook
+        run: mdbook build doc
+
+      - name: Upload book
+        uses: actions/upload-pages-artifact@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          path: book/
+          retention-days: "3"
+
+      - name: Deploy Book
+        uses: JamesIves/github-pages-deploy-action@v4
+        if: ${{ github.event_name == 'push' && startsWith('refs/heads/main', github.ref) }}
+        with:
+          branch: gh-pages
+          folder: book/
+          single-commit: true

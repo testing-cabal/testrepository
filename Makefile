@@ -12,7 +12,7 @@
 # license you chose for the specific language governing permissions and
 # limitations under that license.
 
-all: README.rst check
+all: README.md check
 
 editable:
 	pip install -e .[test]
@@ -29,7 +29,7 @@ check-xml:
 release:
 	hatchling build
 
-README.rst: editable testrepository/commands/quickstart.py
+README.md: editable testrepository/commands/quickstart.py
 	./testr quickstart > $@
 
 .PHONY: check check-xml editable release all

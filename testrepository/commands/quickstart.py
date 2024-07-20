@@ -86,7 +86,7 @@ Delete a repository::
 
 More detailed documentation including design and implementation details, a
 user manual, and guidelines for development of Test Repository itself can be
-found at https://testrepository.github.io, or in the source
+found at https://testing-cabal.github.io/testrepository/, or in the source
 tree at doc/ (run make -C doc html).
 """
         self.ui.output_rest(help)

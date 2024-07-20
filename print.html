@@ -1,0 +1,638 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Testrepository</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="overview.html">Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Manual</li><li class="chapter-item expanded "><a href="configuration.html"><strong aria-hidden="true">1.</strong> Configuration</a></li><li class="chapter-item expanded "><a href="running-tests.html"><strong aria-hidden="true">2.</strong> Running tests</a></li><li class="chapter-item expanded "><a href="listing-tests.html"><strong aria-hidden="true">3.</strong> Listing tests</a></li><li class="chapter-item expanded "><a href="parallel-testing.html"><strong aria-hidden="true">4.</strong> Parallel testing</a></li><li class="chapter-item expanded "><a href="grouping-tests.html"><strong aria-hidden="true">5.</strong> Grouping tests</a></li><li class="chapter-item expanded "><a href="remote-or-isolated-test-environments.html"><strong aria-hidden="true">6.</strong> Remote or isolated test environments</a></li><li class="chapter-item expanded "><a href="hiding-tests.html"><strong aria-hidden="true">7.</strong> Hiding tests</a></li><li class="chapter-item expanded "><a href="automated-test-isolation-bisection.html"><strong aria-hidden="true">8.</strong> Automated test isolation bisection</a></li><li class="chapter-item expanded "><a href="forcing-isolation.html"><strong aria-hidden="true">9.</strong> Forcing isolation</a></li><li class="chapter-item expanded "><a href="repositories.html"><strong aria-hidden="true">10.</strong> Repositories</a></li><li class="chapter-item expanded "><a href="setuptools-integration.html"><strong aria-hidden="true">11.</strong> Setuptools integration</a></li><li class="chapter-item expanded affix "><li class="part-title">Developers</li><li class="chapter-item expanded "><a href="developers/development-guidelines.html"><strong aria-hidden="true">12.</strong> Development guidelines</a></li><li class="chapter-item expanded affix "><li class="part-title">Design</li><li class="chapter-item expanded "><a href="design/design.html"><strong aria-hidden="true">13.</strong> Design</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Testrepository</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+<p>Test repository is a small application for tracking test results. Any test run
+that can be represented as a subunit stream can be inserted into a repository.</p>
+<p>Typical workflow is to have a repository into which test runs are inserted, and
+then to query the repository to find out about issues that need addressing.
+testr can fully automate this, but lets start with the low level facilities,
+using the sample subunit stream included with testr</p>
+<pre><code class="language-sh">  # Note that there is a .testr.conf already:
+  ls .testr.conf
+  # Create a store to manage test results in.
+  $ testr init
+  # add a test result (shows failures)
+  $ testr load &lt; examples/example-failing-subunit-stream
+  # see the tracked failing tests again
+  $ testr failing
+  # fix things
+  $ testr load &lt; examples/example-passing-subunit-stream
+  # Now there are no tracked failing tests
+  $ testr failing
+</code></pre>
+<p>Most commands in testr have comprehensive online help, and the commands</p>
+<pre><code class="language-sh">  $ testr help [command]
+  $ testr commands
+</code></pre>
+<p>Will be useful to explore the system.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<p>testr is configured via the <code>.testr.conf</code> file which needs to be in the same
+directory that testr is run from. testr includes online help for all the
+options that can be set within it:</p>
+<pre><code class="language-sh">  $ testr help run
+</code></pre>
+<h2 id="python"><a class="header" href="#python">Python</a></h2>
+<p>If your test suite is written in Python, the simplest - and usually correct
+configuration is:</p>
+<pre><code class="language-ini">    [DEFAULT]
+    test_command=python -m subunit.run discover . $LISTOPT $IDOPTION
+    test_id_option=--load-list $IDFILE
+    test_list_option=--list
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h1>
+<p>testr is taught how to run your tests by interepreting your .testr.conf file.
+For instance:</p>
+<pre><code class="language-ini">  [DEFAULT]
+  test_command=foo $IDOPTION
+  test_id_option=--bar $IDFILE
+</code></pre>
+<p>will cause <code>testr run</code> to run <code>foo</code> and process it as <code>testr load</code> would.
+Likewise <code>testr run --failing</code> will automatically create a list file listing
+just the failing tests, and then run <code>foo --bar failing.list</code> and process it as
+<code>testr load</code> would. failing.list will be a newline separated list of the
+test ids that your test runner outputs. If there are no failing tests, no test
+execution will happen at all.</p>
+<p>Arguments passed to <code>testr run</code> are used to filter test ids that will be run -
+testr will query the runner for test ids and then apply each argument as a
+regex filter. Tests that match any of the given filters will be run. Arguments
+passed to run after a <code>--</code> are passed through to your test runner command
+line. For instance, using the above config example <code>testr run quux -- bar --no-plugins</code> would query for test ids, filter for those that match <code>quux</code> and
+then run <code>foo bar --load-list tempfile.list --no-plugins</code>. Shell variables
+are expanded in these commands on platforms that have a shell.</p>
+<p>Having setup a .testr.conf, a common workflow then becomes:</p>
+<pre><code class="language-sh">  # Fix currently broken tests - repeat until there are no failures.
+  $ testr run --failing
+  # Do a full run to find anything that regressed during the reduction process.
+  $ testr run
+  # And either commit or loop around this again depending on whether errors
+  # were found.
+</code></pre>
+<p>The <code>--failing option</code> turns on <code>--partial</code> automatically (so that if the
+partial test run were to be interrupted, the failing tests that aren't run are
+not lost).</p>
+<p>Another common use case is repeating a failure that occured on a remote
+machine (e.g. during a jenkins test run). There are two common ways to do
+approach this.</p>
+<p>Firstly, if you have a subunit stream from the run you can just load it:</p>
+<pre><code class="language-sh">  $ testr load &lt; failing-stream
+  # Run the failed tests
+  $ testr run --failing
+</code></pre>
+<p>The streams generated by test runs are in <code>.testrepository/</code> named for their test
+id - e.g. <code>.testrepository/0</code> is the first stream.</p>
+<p>If you do not have a stream (because the test runner didn't output subunit or
+you don't have access to the .testrepository) you may be able to use a list
+file. If you can get a file that contains one test id per line, you can run
+the named tests like this:</p>
+<pre><code class="language-sh">  $ testr run --load-list FILENAME
+</code></pre>
+<p>This can also be useful when dealing with sporadically failing tests, or tests
+that only fail in combination with some other test - you can bisect the tests
+that were run to get smaller and smaller (or larger and larger) test subsets
+until the error is pinpointed.</p>
+<p>`testr run --until-failure`` will run your test suite again and again and
+again stopping only when interrupted or a failure occurs. This is useful
+for repeating timing-related test failures.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="listing-tests"><a class="header" href="#listing-tests">Listing Tests</a></h1>
+<p>It is useful to be able to query the test program to see what tests will be
+run - this permits partitioning the tests and running multiple instances with
+separate partitions at once. Set 'test_list_option' in .testr.conf like so:</p>
+<pre><code class="language-ini">  test_list_option=--list-tests
+</code></pre>
+<p>You also need to use the $LISTOPT option to tell testr where to expand things:</p>
+<pre><code class="language-ini">  test_command=foo $LISTOPT $IDOPTION
+</code></pre>
+<p>All the normal rules for invoking test program commands apply: extra parameters
+will be passed through, if a test list is being supplied test_option can be
+used via <code>$IDOPTION</code>.</p>
+<p>The output of the test command when this option is supplied should be a subunit
+test enumeration. For subunit v1 that is a series of test ids, in any order,
+<code>\n</code> separated on stdout. For v2 use the subunit protocol and emit one event
+per test with each test having status 'exists'.</p>
+<p>To test whether this is working the <code>testr list-tests</code> command can be useful.</p>
+<p>You can also use this to see what tests will be run by a given testr run
+command. For instance, the tests that <code>testr run myfilter</code> will run are shown
+by <code>testr list-tests myfilter</code>. As with <code>run</code>, arguments to <code>list-tests</code> are
+used to regex filter the tests of the test runner, and arguments after a <code>--</code>
+are passed to the test runner.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="parallel-testing"><a class="header" href="#parallel-testing">Parallel testing</a></h1>
+<p>If both test listing and filtering (via either <code>IDLIST</code> or <code>IDFILE</code>) are configured then testr is able to run your tests in parallel</p>
+<pre><code class="language-sh">  $ testr run --parallel
+</code></pre>
+<p>This will first list the tests, partition the tests into one partition per CPU
+on the machine, and then invoke multiple test runners at the same time, with
+each test runner getting one partition. Currently the partitioning algorithm
+is simple round-robin for tests that testr has not seen run before, and
+equal-time buckets for tests that testr has seen run. NB: This uses the anydbm
+Python module to store the duration of each test. On some platforms (to date
+only OSX) there is no bulk-update API and performance may be impacted if you
+have many (10's of thousands) of tests.</p>
+<p>To determine how many CPUs are present in the machine, testrepository will
+use the multiprocessing Python module (present since 2.6). On operating systems
+where this is not implemented, or if you need to control the number of workers
+that are used, the --concurrency option will let you do so</p>
+<pre><code class="language-sh">  $ testr run --parallel --concurrency=2
+</code></pre>
+<p>A more granular interface is available too - if you insert into .testr.conf</p>
+<pre><code class="language-ini">  test_run_concurrency=foo bar
+</code></pre>
+<p>Then when testr needs to determine concurrency, it will run that command and
+read the first line from stdout, cast that to an int, and use that as the
+number of partitions to create. A count of 0 is interpreted to mean one
+partition per test. For instance in .test.conf</p>
+<pre><code class="language-ini">  test_run_concurrency=echo 2
+</code></pre>
+<p>Would tell testr to use concurrency of 2.</p>
+<p>When running tests in parallel, testrepository tags each test with a tag for
+the worker that executed the test. The tags are of the form <code>worker-%d</code>
+and are usually used to reproduce test isolation failures, where knowing
+exactly what test ran on a given backend is important. The <code>%d</code> that is
+substituted in is the partition number of tests from the test run - all tests
+in a single run with the same <code>worker-N</code> ran in the same test runner instance.</p>
+<p>To find out which slave a failing test ran on just look at the <code>tags</code> line in
+its test error</p>
+<pre><code class="language-text">  ======================================================================
+  label: testrepository.tests.ui.TestDemo.test_methodname
+  tags: foo worker-0
+  ----------------------------------------------------------------------
+  error text
+</code></pre>
+<p>And then find tests with that tag</p>
+<pre><code class="language-sh">  $ testr last --subunit | subunit-filter -s --xfail --with-tag=worker-3 | subunit-ls &gt; slave-3.list
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="grouping-tests"><a class="header" href="#grouping-tests">Grouping tests</a></h1>
+<p>In certain scenarios you may want to group tests of a certain type together
+so that they will be run by the same backend. The group_regex option in
+.testr.conf permits this. When set, tests are grouped by the group(0) of any
+regex match. Tests with no match are not grouped.</p>
+<p>For example, extending the python sample .testr.conf from the configuration
+section with a group regex that will group python tests cases together by
+class (the last . splits the class and test method)</p>
+<pre><code class="language-ini">    [DEFAULT]
+    test_command=python -m subunit.run discover . $LISTOPT $IDOPTION
+    test_id_option=--load-list $IDFILE
+    test_list_option=--list
+    group_regex=([^\.]+\.)+
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="remote-or-isolated-test-environments"><a class="header" href="#remote-or-isolated-test-environments">Remote or isolated test environments</a></h1>
+<p>A common problem with parallel test running is test runners that use global
+resources such as well known ports, well known database names or predictable
+directories on disk.</p>
+<p>One way to solve this is to setup isolated environments such as chroots,
+containers or even separate machines. Such environments typically require
+some coordination when being used to run tests, so testr provides an explicit
+model for working with them.</p>
+<p>The model testr has is intended to support both developers working
+incrementally on a change and CI systems running tests in a one-off setup,
+for both statically and dynamically provisioned environments.</p>
+<p>The process testr follows is:</p>
+<ol>
+<li>The user should perform any one-time or once-per-session setup. For instance,
+checking out source code, creating a template container, sourcing your cloud
+credentials.</li>
+<li>Execute testr run.</li>
+<li>testr queries for concurrency.</li>
+<li>testr will make a callout request to provision that many instances.
+The provisioning callout needs to synchronise source code and do any other
+per-instance setup at this stage.</li>
+<li>testr will make callouts to execute tests, supplying files that should be
+copied into the execution environment. Note that instances may be used for
+more than one command execution.</li>
+<li>testr will callout to dispose of the instances after the test run completes.</li>
+</ol>
+<p>Instances may be expensive to create and dispose of. testr does not perform
+any caching, but the callout pattern is intended to facilitate external
+caching - the provisioning callout can be used to pull environments out of
+a cache, and the dispose to just return it to the cache.</p>
+<h2 id="configuring-environment-support"><a class="header" href="#configuring-environment-support">Configuring environment support</a></h2>
+<p>There are three callouts that testrepository depends on - configured in
+.testr.conf as usual. For instance</p>
+<pre><code class="language-ini">  instance_provision=foo -c $INSTANCE_COUNT
+  instance_dispose=bar $INSTANCE_IDS
+  instance_execute=quux $INSTANCE_ID $FILES -- $COMMAND
+</code></pre>
+<p>These should operate as follows:</p>
+<ul>
+<li>
+<p>instance_provision should start up the number of instances provided in the
+<code>$INSTANCE_COUNT</code> parameter. It should print out on stdout the instance ids
+that testr should supply to the dispose and execute commands. There should
+be no other output on stdout (stderr is entirely up for grabs). An exit code
+of non-zero will cause testr to consider the command to have failed. A
+provisioned instance should be able to execute the list tests command and
+execute tests commands that testr will run via the instance_execute callout.
+Its possible to lazy-provision things if you desire - testr doesn't care -
+but to reduce latency we suggest performing any rsync or other code
+synchronisation steps during the provision step, as testr may make multiple
+calls to one environment, and re-doing costly operations on each command
+execution would impair performance.</p>
+</li>
+<li>
+<p>instance_dispose should take a list of instance ids and get rid of them
+this might mean putting them back in a pool of instances, or powering them
+off, or terminating them - whatever makes sense for your project.</p>
+</li>
+<li>
+<p>instance_execute should accept an instance id, a list of files that need to
+be copied into the instance and a command to run within the instance. It
+needs to copy those files into the instance (it may adjust their paths if
+desired). If the paths are adjusted, the same paths within <code>$COMMAND</code> should be
+adjusted to match. Execution that takes place with a shared filesystem can
+obviously skip file copying or adjusting (and the $FILES parameter). When the
+instance_execute terminates, it should use the exit code that the command
+used within the instance. Stdout and stderr from instance_execute are
+presumed to be that of <code>$COMMAND</code>. In particular, stdout is where the subunit
+test output, and subunit test listing output, are expected, and putting other
+output into stdout can lead to surprising results - such as corrupting the
+subunit stream.
+instance_execute is invoked for both test listing and test executing
+callouts.</p>
+</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="hiding-tests"><a class="header" href="#hiding-tests">Hiding tests</a></h1>
+<p>Some test runners (for instance, <code>zope.testrunner</code>) report pseudo tests having to
+do with bringing up the test environment rather than being actual tests that
+can be executed. These are only relevant to a test run when they fail - the
+rest of the time they tend to be confusing. For instance, the same 'test' may
+show up on multiple parallel test runs, which will inflate the 'executed tests'
+count depending on the number of worker threads that were used. Scheduling such
+'tests' to run is also a bit pointless, as they are only ever executed
+implicitly when preparing (or finishing with) a test environment to run other
+tests in.</p>
+<p>testr can ignore such tests if they are tagged, using the filter_tags
+configuration option. Tests tagged with any tag in that (space separated) list
+will only be included in counts and reports if the test failed (or errored).</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="automated-test-isolation-bisection"><a class="header" href="#automated-test-isolation-bisection">Automated test isolation bisection</a></h1>
+<p>As mentioned previously, it is possible to manually analyze test isolation
+issues by interrogating the repository for which tests ran on which worker, and
+then creating a list file with those tests, re-running only half of them,
+checking the error still happens, rinse and repeat.</p>
+<p>However that is tedious. testr can perform this analysis for you</p>
+<pre><code class="language-sh">  $ testr run --analyze-isolation 
+</code></pre>
+<p>will perform that analysis for you. (This requires that your test runner is
+(mostly) deterministic on test ordering). The process is:</p>
+<ol>
+<li>
+<p>The last run in the repository is used as a basis for analysing against -
+tests are only cross checked against tests run in the same worker in that
+run. This means that failures accrued from several different runs would not
+be processed with the right basis tests - you should do a full test run to
+seed your repository. This can be local, or just testr load a full run from
+your Jenkins or other remote run environment.</p>
+</li>
+<li>
+<p>Each test that is currently listed as a failure is run in a test process
+given just that id to run.</p>
+</li>
+<li>
+<p>Tests that fail are excluded from analysis - they are broken on their own.</p>
+</li>
+<li>
+<p>The remaining failures are then individually analysed one by one.</p>
+</li>
+<li>
+<p>For each failing, it gets run in one work along with the first 1/2 of the
+tests that were previously run prior to it.</p>
+</li>
+<li>
+<p>If the test now passes, that set of prior tests are discarded, and the
+other half of the tests is promoted to be the full list. If the test fails
+then other other half of the tests are discarded and the current set
+promoted.</p>
+</li>
+<li>
+<p>Go back to running the failing test along with 1/2 of the current list of
+priors unless the list only has 1 test in it. If the failing test still
+failed with that test, we have found the isolation issue. If it did not
+then either the isolation issue is racy, or it is a 3-or-more test
+isolation issue. Neither of those cases are automated today.</p>
+</li>
+</ol>
+<p>This cannot prove the absence of interactions - for instance, a runner that randomises the order of tests executing combined with a failure that occurs with A before B but not B before A could easily appear to be isolated when it is not.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="forcing-isolation"><a class="header" href="#forcing-isolation">Forcing isolation</a></h1>
+<p>Sometimes it is useful to force a separate test runner instance for each test
+executed. The <code>--isolated</code> flag will cause testr to execute a separate runner
+per test</p>
+<pre><code class="language-sh">  $ testr run --isolated
+</code></pre>
+<p>In this mode testr first determines tests to run (either automatically listed,
+using the failing set, or a user supplied load-list), and then spawns one test
+runner per test it runs. To avoid cross-test-runner interactions concurrency
+is disabled in this mode. <code>--analyze-isolation</code> supercedes <code>--isolated</code> if
+they are both supplied.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="repositories"><a class="header" href="#repositories">Repositories</a></h1>
+<p>A testr repository is a very simple disk structure. It contains the following
+files (for a format 1 repository - the only current format):</p>
+<ul>
+<li>
+<p><code>format</code>: This file identifies the precise layout of the repository, in case future changes are needed.</p>
+</li>
+<li>
+<p><code>next-stream</code>: This file contains the serial number to be used when adding another stream to the repository.</p>
+</li>
+<li>
+<p><code>failing</code>: This file is a stream containing just the known failing tests.
+It is updated whenever a new stream is added to the repository, so that it only references known failing tests.</p>
+</li>
+<li>
+<p><code>#N</code> - all the streams inserted in the repository are given a serial number.</p>
+</li>
+<li>
+<p><code>repo.conf</code>: This file contains user configuration settings for the repository.
+<code>testr repo-config</code> will dump a repo configration and <code>test help repo-config</code> has online help for all the repository settings.</p>
+</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="setuptools-integration"><a class="header" href="#setuptools-integration">Setuptools integration</a></h1>
+<p>testrepository provides a setuptools commands for ease of integration with
+setuptools-based workflows:</p>
+<ul>
+<li>testr:
+<code>python setup.py testr</code> will run testr in parallel mode
+Options that would normally be passed to testr run can be added to the
+testr-options argument.
+<code>python setup.py testr --testr-options="--failing"</code> will append <code>--failing</code>
+to the test run.</li>
+<li>testr --coverage:
+<code>python setup.py testr --coverage</code> will run testr in code coverage mode. This
+assumes the installation of the python coverage module.</li>
+<li><code>python testr --coverage --omit=ModuleThatSucks.py</code> will append
+--omit=ModuleThatSucks.py to the coverage report command.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="development-guidelines"><a class="header" href="#development-guidelines">Development guidelines</a></h1>
+<h2 id="coding-style"><a class="header" href="#coding-style">Coding style</a></h2>
+<p>PEP-8 please. We don't enforce a particular style, but being reasonably
+consistent aids readability.</p>
+<h2 id="copyrights-and-licensing"><a class="header" href="#copyrights-and-licensing">Copyrights and licensing</a></h2>
+<p>Code committed to Test Repository must be licensed under the BSD + Apache-2.0
+licences that Test Repository offers its users. Copyright assignment is not
+required. Please see COPYING for details about how to make a license grant in
+a given source file. Lastly, all copyright holders need to add their name
+to the master list in COPYING the first time they make a change in a given
+calendar year.</p>
+<h2 id="testing-and-qa"><a class="header" href="#testing-and-qa">Testing and QA</a></h2>
+<p>For Test repository please add tests where possible. There is no requirement
+for one test per change (because somethings are much harder to automatically
+test than the benfit from such tests). Fast tests are preferred to slow tests,
+and understandable tests to fast tests.</p>
+<p>CI is done via Github Actions. A broken trunk is not acceptable!</p>
+<p>See DESIGN.txt for information about code layout which will help you find
+where to add tests (and indeed where to change things).</p>
+<h3 id="running-the-tests"><a class="header" href="#running-the-tests">Running the tests</a></h3>
+<p>Generally just <code>make</code> is all that is needed to run all the tests. However
+if dropping into pdb, it is currently more convenient to use
+<code>python -m testtools.run testrepository.tests.test_suite</code>.</p>
+<h3 id="diagnosing-issues"><a class="header" href="#diagnosing-issues">Diagnosing issues</a></h3>
+<p>The cli UI will drop into pdb when an error is thrown if TESTR_PDB is set in
+the environment. This can be very useful for diagnosing problems.</p>
+<h3 id="releasing"><a class="header" href="#releasing">Releasing</a></h3>
+<p>Update NEWS and testrepository/<strong>init</strong>.py version numbers. Release to pypi.
+Pivot the next milestone on LP to version, and make a new next milestone.
+Make a new tag and push that to github.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="design"><a class="header" href="#design">Design</a></h1>
+<h2 id="values"><a class="header" href="#values">Values</a></h2>
+<p>Code reuse.
+Focus on the project.
+Do one thing well.</p>
+<h2 id="goals"><a class="header" href="#goals">Goals</a></h2>
+<p>Achieve a Clean UI, responsive UI, small-tools approach. Simultaneously have
+a small clean code base which is easily approachable.</p>
+<h2 id="data-modelstorage"><a class="header" href="#data-modelstorage">Data model/storage</a></h2>
+<p>testrepository stores subunit streams as subunit streams in .testrespository
+with simple additional metadata. See the <a href="design/../repositories.html">manual</a> for documentation on the repository layout.
+The key design elements are that streams are stored verbatim, and a testr managed stream called 'failing' is used  to track the current failures.</p>
+<h2 id="code-layout"><a class="header" href="#code-layout">Code layout</a></h2>
+<p>One conceptual thing per module, packages for anything where multiple types
+are expected (e.g. testrepository.commands, testrespository.ui).</p>
+<p>Generic driver code should not trigger lots of imports: code dependencies
+should be loaded when needed. For example, argument validation uses argument
+types that each command can import, so the core code doesn't need to know about
+all types.</p>
+<p>The tests for the code in testrepository.foo.bar is in
+testrepository.tests.foo.test_bar. Interface tests for testrepository.foo is
+in testrepository.tests.test_foo.</p>
+<h2 id="external-integration"><a class="header" href="#external-integration">External integration</a></h2>
+<p>Test Repository command, ui, parsing etc objects should all be suitable for
+reuse from other programs.</p>
+<h2 id="threadsconcurrency"><a class="header" href="#threadsconcurrency">Threads/concurrency</a></h2>
+<p>In general using any public interface is fine, but keeping syncronisation
+needs to a minimum for code readability.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>

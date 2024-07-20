@@ -1,0 +1,281 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Running tests - Testrepository</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="overview.html">Overview</a></li><li class="chapter-item expanded affix "><li class="part-title">Manual</li><li class="chapter-item expanded "><a href="configuration.html"><strong aria-hidden="true">1.</strong> Configuration</a></li><li class="chapter-item expanded "><a href="running-tests.html" class="active"><strong aria-hidden="true">2.</strong> Running tests</a></li><li class="chapter-item expanded "><a href="listing-tests.html"><strong aria-hidden="true">3.</strong> Listing tests</a></li><li class="chapter-item expanded "><a href="parallel-testing.html"><strong aria-hidden="true">4.</strong> Parallel testing</a></li><li class="chapter-item expanded "><a href="grouping-tests.html"><strong aria-hidden="true">5.</strong> Grouping tests</a></li><li class="chapter-item expanded "><a href="remote-or-isolated-test-environments.html"><strong aria-hidden="true">6.</strong> Remote or isolated test environments</a></li><li class="chapter-item expanded "><a href="hiding-tests.html"><strong aria-hidden="true">7.</strong> Hiding tests</a></li><li class="chapter-item expanded "><a href="automated-test-isolation-bisection.html"><strong aria-hidden="true">8.</strong> Automated test isolation bisection</a></li><li class="chapter-item expanded "><a href="forcing-isolation.html"><strong aria-hidden="true">9.</strong> Forcing isolation</a></li><li class="chapter-item expanded "><a href="repositories.html"><strong aria-hidden="true">10.</strong> Repositories</a></li><li class="chapter-item expanded "><a href="setuptools-integration.html"><strong aria-hidden="true">11.</strong> Setuptools integration</a></li><li class="chapter-item expanded affix "><li class="part-title">Developers</li><li class="chapter-item expanded "><a href="developers/development-guidelines.html"><strong aria-hidden="true">12.</strong> Development guidelines</a></li><li class="chapter-item expanded affix "><li class="part-title">Design</li><li class="chapter-item expanded "><a href="design/design.html"><strong aria-hidden="true">13.</strong> Design</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Testrepository</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="running-tests"><a class="header" href="#running-tests">Running Tests</a></h1>
+<p>testr is taught how to run your tests by interepreting your .testr.conf file.
+For instance:</p>
+<pre><code class="language-ini">  [DEFAULT]
+  test_command=foo $IDOPTION
+  test_id_option=--bar $IDFILE
+</code></pre>
+<p>will cause <code>testr run</code> to run <code>foo</code> and process it as <code>testr load</code> would.
+Likewise <code>testr run --failing</code> will automatically create a list file listing
+just the failing tests, and then run <code>foo --bar failing.list</code> and process it as
+<code>testr load</code> would. failing.list will be a newline separated list of the
+test ids that your test runner outputs. If there are no failing tests, no test
+execution will happen at all.</p>
+<p>Arguments passed to <code>testr run</code> are used to filter test ids that will be run -
+testr will query the runner for test ids and then apply each argument as a
+regex filter. Tests that match any of the given filters will be run. Arguments
+passed to run after a <code>--</code> are passed through to your test runner command
+line. For instance, using the above config example <code>testr run quux -- bar --no-plugins</code> would query for test ids, filter for those that match <code>quux</code> and
+then run <code>foo bar --load-list tempfile.list --no-plugins</code>. Shell variables
+are expanded in these commands on platforms that have a shell.</p>
+<p>Having setup a .testr.conf, a common workflow then becomes:</p>
+<pre><code class="language-sh">  # Fix currently broken tests - repeat until there are no failures.
+  $ testr run --failing
+  # Do a full run to find anything that regressed during the reduction process.
+  $ testr run
+  # And either commit or loop around this again depending on whether errors
+  # were found.
+</code></pre>
+<p>The <code>--failing option</code> turns on <code>--partial</code> automatically (so that if the
+partial test run were to be interrupted, the failing tests that aren't run are
+not lost).</p>
+<p>Another common use case is repeating a failure that occured on a remote
+machine (e.g. during a jenkins test run). There are two common ways to do
+approach this.</p>
+<p>Firstly, if you have a subunit stream from the run you can just load it:</p>
+<pre><code class="language-sh">  $ testr load &lt; failing-stream
+  # Run the failed tests
+  $ testr run --failing
+</code></pre>
+<p>The streams generated by test runs are in <code>.testrepository/</code> named for their test
+id - e.g. <code>.testrepository/0</code> is the first stream.</p>
+<p>If you do not have a stream (because the test runner didn't output subunit or
+you don't have access to the .testrepository) you may be able to use a list
+file. If you can get a file that contains one test id per line, you can run
+the named tests like this:</p>
+<pre><code class="language-sh">  $ testr run --load-list FILENAME
+</code></pre>
+<p>This can also be useful when dealing with sporadically failing tests, or tests
+that only fail in combination with some other test - you can bisect the tests
+that were run to get smaller and smaller (or larger and larger) test subsets
+until the error is pinpointed.</p>
+<p>`testr run --until-failure`` will run your test suite again and again and
+again stopping only when interrupted or a failure occurs. This is useful
+for repeating timing-related test failures.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="configuration.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="listing-tests.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="configuration.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="listing-tests.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

@@ -24,7 +24,7 @@ jobs:
       - name: Upload book
         uses: actions/upload-pages-artifact@v2
         with:
-          path: book/
+          path: doc/book/
           retention-days: "3"
 
       - name: Deploy Book
@@ -32,5 +32,5 @@ jobs:
         if: ${{ github.event_name == 'push' && startsWith('refs/heads/main', github.ref) }}
         with:
           branch: gh-pages
-          folder: book/
+          folder: doc/book/
           single-commit: true

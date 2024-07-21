@@ -13,3 +13,4 @@ ChangeLog
 .tox
 doc/build/
 testrepository/_version.py
+/.vscode

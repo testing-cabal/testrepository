@@ -10,6 +10,9 @@ CHANGES
 
 * Drop Python 2 support. (Colin Watson)
 
+* Remove use of pytz in favour of ``datetime.timezone.utc``.
+  (Colin Watson, https://github.com/testing-cabal/testrepository/issues/56)
+
 0.0.21
 ++++++
 

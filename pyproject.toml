@@ -34,7 +34,7 @@ license-files = ["COPYING"]
 
 [project.optional-dependencies]
 docs = ["sphinx"]
-test = ["pytz", "testresources", "testscenarios"]
+test = ["testresources", "testscenarios"]
 
 [tool.hatch.version]
 source = "vcs"

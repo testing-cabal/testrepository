@@ -17,7 +17,6 @@
 from io import BytesIO
 
 from testtools import TestResult
-from testtools.compat import _b
 
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument

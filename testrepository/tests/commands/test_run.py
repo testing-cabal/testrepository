@@ -26,7 +26,6 @@ from fixtures import (
 import subunit
 from subunit import RemotedTestCase
 from testscenarios.scenarios import multiply_scenarios
-from testtools.compat import _b
 from testtools.matchers import (
     Equals,
     HasLength,
@@ -501,7 +500,7 @@ def readline(stream):
 
 
 def readlines(stream):
-    return _b('').join(stream.readlines())
+    return b''.join(stream.readlines())
 
 
 def accumulate(stream, reader):
@@ -510,7 +509,7 @@ def accumulate(stream, reader):
     while content:
         accumulator.append(content)
         content = reader(stream)
-    return _b('').join(accumulator)
+    return b''.join(accumulator)
 
 
 class TestReturnCodeToSubunit(ResourcedTestCase):
@@ -521,8 +520,8 @@ class TestReturnCodeToSubunit(ResourcedTestCase):
          ('readline', dict(reader=readline)),
          ('readlines', dict(reader=readlines)),
          ],
-        [('noeol', dict(stdout=_b('foo\nbar'))),
-         ('trailingeol', dict(stdout=_b('foo\nbar\n')))])
+        [('noeol', dict(stdout=b'foo\nbar')),
+         ('trailingeol', dict(stdout=b'foo\nbar\n'))])
 
     def test_returncode_0_no_change(self):
         proc = ProcessModel(None)

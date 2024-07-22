@@ -28,7 +28,6 @@ import tempfile
 import subunit.v2
 from subunit import TestProtocolClient
 import testtools
-from testtools.compat import _b
 
 from testrepository.repository import (
     AbstractRepository,
@@ -123,7 +122,7 @@ class Repository(AbstractRepository):
         except IOError:
             err = sys.exc_info()[1]
             if err.errno == errno.ENOENT:
-                run_subunit_content = _b('')
+                run_subunit_content = b''
             else:
                 raise
         return _DiskRun(None, run_subunit_content)

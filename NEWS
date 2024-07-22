@@ -2,6 +2,14 @@
 testrepository release notes
 ############################
 
+0.0.22
+++++++
+
+CHANGES
+-------
+
+* Drop Python 2 support. (Colin Watson)
+
 0.0.21
 ++++++
 

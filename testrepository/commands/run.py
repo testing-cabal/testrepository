@@ -24,7 +24,6 @@ import testtools
 from testtools import (
     TestByTestResult,
     )
-from testtools.compat import _b
 
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
@@ -36,7 +35,7 @@ from testrepository.testcommand import TestCommand, testrconf_help
 from testrepository.testlist import parse_list
 
 
-LINEFEED = _b('\n')[0]
+LINEFEED = b'\n'[0]
 
 
 class ReturnCodeToSubunit(object):
@@ -74,7 +73,7 @@ class ReturnCodeToSubunit(object):
                 # line. V2 needs to start on any fresh utf8 character border
                 # - which is not guaranteed in an arbitrary stream endpoint, so
                 # injecting a \n gives us such a guarantee.
-                self.source.write(_b('\n'))
+                self.source.write(b'\n')
             stream = subunit.StreamResultToBytes(self.source)
             stream.status(test_id='process-returncode', test_status='fail',
                 file_name='traceback', mime_type='text/plain;charset=utf8',
@@ -84,7 +83,7 @@ class ReturnCodeToSubunit(object):
 
     def read(self, count=-1):
         if count == 0:
-            return _b('')
+            return b''
         result = self.source.read(count)
         if result:
             self.lastoutput = result[-1]

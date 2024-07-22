@@ -19,7 +19,6 @@ import os.path
 from subprocess import PIPE
 
 import subunit
-from testtools.compat import _b
 from testtools.matchers import MatchesException
 
 from testrepository.commands import list_tests
@@ -91,7 +90,7 @@ class TestCommand(ResourcedTestCase):
             ('popen', (expected_cmd,),
              {'shell': True, 'stdout': PIPE, 'stdin': PIPE}),
             ('communicate',),
-            ('stream', _b('returned\nvalues\n')),
+            ('stream', b'returned\nvalues\n'),
             ], ui.outputs)
 
     def test_filters_use_filtered_list(self):
@@ -116,6 +115,6 @@ class TestCommand(ResourcedTestCase):
             ('popen', (expected_cmd,),
              {'shell': True, 'stdout': PIPE, 'stdin': PIPE}),
             ('communicate',),
-            ('stream', _b('returned\n')),
+            ('stream', b'returned\n'),
             ], ui.outputs)
         self.assertEqual(0, retcode)

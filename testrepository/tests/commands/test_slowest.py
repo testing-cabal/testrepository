@@ -17,8 +17,8 @@
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
-import pytz
 
 from testtools import PlaceHolder
 
@@ -54,7 +54,7 @@ class TestCommand(ResourcedTestCase):
         :return: the name of the test that was added.
         """
         test_id = self.getUniqueString()
-        start_time = datetime.now(pytz.UTC)
+        start_time = datetime.now(timezone.utc)
         inserter.status(test_id=test_id, test_status='inprogress',
             timestamp=start_time)
         inserter.status(test_id=test_id, test_status='success',

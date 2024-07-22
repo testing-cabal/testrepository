@@ -20,7 +20,6 @@ import subprocess
 import sys
 
 from fixtures import EnvironmentVariable
-from testtools.compat import _b, _u
 from testtools.content import text_content
 from testtools.matchers import raises
 
@@ -78,7 +77,7 @@ class TestUIContract(ResourcedTestCase):
         ui = self.ui_factory()
 
     def test_factory_input_stream_args(self):
-        ui = self.ui_factory([('subunit', _b('value'))])
+        ui = self.ui_factory([('subunit', b'value')])
 
     def test_here(self):
         ui = self.get_test_ui()
@@ -87,14 +86,14 @@ class TestUIContract(ResourcedTestCase):
     def test_iter_streams_load_stdin_use_case(self):
         # A UI can be asked for the streams that a command has indicated it
         # accepts, which is what load < foo will require.
-        ui = self.ui_factory([('subunit', _b('test: foo\nsuccess: foo\n'))])
+        ui = self.ui_factory([('subunit', b'test: foo\nsuccess: foo\n')])
         cmd = commands.Command(ui)
         cmd.input_streams = ['subunit+']
         ui.set_command(cmd)
         results = []
         for result in ui.iter_streams('subunit'):
             results.append(result.read())
-        self.assertEqual([_b('test: foo\nsuccess: foo\n')], results)
+        self.assertEqual([b'test: foo\nsuccess: foo\n'], results)
 
     def test_iter_streams_unexpected_type_raises(self):
         ui = self.get_test_ui()
@@ -112,7 +111,7 @@ class TestUIContract(ResourcedTestCase):
     def test_output_rest(self):
         # output some ReST - used for help and docs.
         ui = self.get_test_ui()
-        ui.output_rest(_u(''))
+        ui.output_rest('')
 
     def test_output_stream(self):
         # a stream of bytes can be output.
@@ -122,7 +121,7 @@ class TestUIContract(ResourcedTestCase):
     def test_output_stream_non_utf8(self):
         # When the stream has non-utf8 bytes it still outputs correctly.
         ui = self.get_test_ui()
-        ui.output_stream(BytesIO(_b('\xfa')))
+        ui.output_stream(BytesIO(b'\xfa'))
 
     def test_output_table(self):
         # output_table shows a table.

@@ -32,7 +32,6 @@ from testtools import (
     PlaceHolder,
     )
 import testtools
-from testtools.compat import _b
 from testtools.testresult.doubles import (
     ExtendedTestResult,
     StreamResult,

@@ -20,7 +20,6 @@ import optparse
 import re
 
 import subunit
-from testtools.compat import _b
 from testtools.matchers import (
     Equals,
     MatchesAny,
@@ -106,7 +105,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo\n'
             'instance_dispose=bar $INSTANCE_IDS\n')
-        command._instances.update([_b('baz'), _b('quux')])
+        command._instances.update([b'baz', b'quux'])
         command.cleanUp()
         command.setUp()
         self.assertEqual([
@@ -120,7 +119,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo\n'
             'instance_dispose=bar $INSTANCE_IDS\n')
-        command._instances.update([_b('baz'), _b('quux')])
+        command._instances.update([b'baz', b'quux'])
         self.assertThat(command.cleanUp,
             raises(ValueError('Disposing of instances failed, return 1')))
         command.setUp()
@@ -246,7 +245,7 @@ class TestTestCommand(ResourcedTestCase):
         ui.here = self.tempdir
         cmd = run.run(ui)
         ui.set_command(cmd)
-        ui.proc_outputs = [_b('returned\ninstances\n')]
+        ui.proc_outputs = [b'returned\ninstances\n']
         command = self.useFixture(TestCommand(ui, None))
         self.set_config(
             '[DEFAULT]\ntest_command=foo $LISTOPT $IDLIST\ntest_id_list_default=whoo yea\n'
@@ -255,7 +254,7 @@ class TestTestCommand(ResourcedTestCase):
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         fixture.list_tests()
-        self.assertEqual(set([_b('returned'), _b('instances')]), command._instances)
+        self.assertEqual(set([b'returned', b'instances']), command._instances)
         self.assertEqual(set([]), command._allocated_instances)
         self.assertThat(ui.outputs, MatchesAny(Equals([
             ('values', [('running', 'provision -c 2')]),
@@ -280,9 +279,9 @@ class TestTestCommand(ResourcedTestCase):
             'test_list_option=--list\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
         fixture = self.useFixture(command.get_run_command())
-        command._instances.add(_b('bar'))
+        command._instances.add(b'bar')
         fixture.list_tests()
-        self.assertEqual(set([_b('bar')]), command._instances)
+        self.assertEqual(set([b'bar']), command._instances)
         self.assertEqual(set([]), command._allocated_instances)
         self.assertEqual([
             ('values', [('running', 'quux bar -- foo --list whoo yea')]),
@@ -419,7 +418,7 @@ class TestTestCommand(ResourcedTestCase):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n')
-        command._instances.update([_b('foo'), _b('bar')])
+        command._instances.update([b'foo', b'bar'])
         fixture = self.useFixture(command.get_run_command())
         procs = fixture.run_tests()
         self.assertEqual([
@@ -434,7 +433,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
-        command._instances.add(_b('bar'))
+        command._instances.add(b'bar')
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         procs = fixture.run_tests()
         self.assertEqual([
@@ -443,13 +442,13 @@ class TestTestCommand(ResourcedTestCase):
              {'shell': True, 'stdin': -1, 'stdout': -1})],
             ui.outputs)
         # No --parallel, so the one instance should have been allocated.
-        self.assertEqual(set([_b('bar')]), command._instances)
-        self.assertEqual(set([_b('bar')]), command._allocated_instances)
+        self.assertEqual(set([b'bar']), command._instances)
+        self.assertEqual(set([b'bar']), command._allocated_instances)
         # And after the process is run, bar is returned for re-use.
         procs[0].stdout.read()
         procs[0].wait()
         self.assertEqual(0, procs[0].returncode)
-        self.assertEqual(set([_b('bar')]), command._instances)
+        self.assertEqual(set([b'bar']), command._instances)
         self.assertEqual(set(), command._allocated_instances)
         
     def test_run_tests_allocated_instances_skipped(self):
@@ -457,8 +456,8 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDLIST\n'
             'instance_execute=quux $INSTANCE_ID -- $COMMAND\n')
-        command._instances.update([_b('bar'), _b('baz')])
-        command._allocated_instances.add(_b('baz'))
+        command._instances.update([b'bar', b'baz'])
+        command._allocated_instances.add(b'baz')
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         procs = fixture.run_tests()
         self.assertEqual([
@@ -467,21 +466,21 @@ class TestTestCommand(ResourcedTestCase):
              {'shell': True, 'stdin': -1, 'stdout': -1})],
             ui.outputs)
         # No --parallel, so the one instance should have been allocated.
-        self.assertEqual(set([_b('bar'), _b('baz')]), command._instances)
-        self.assertEqual(set([_b('bar'), _b('baz')]), command._allocated_instances)
+        self.assertEqual(set([b'bar', b'baz']), command._instances)
+        self.assertEqual(set([b'bar', b'baz']), command._allocated_instances)
         # And after the process is run, bar is returned for re-use.
         procs[0].wait()
         procs[0].stdout.read()
         self.assertEqual(0, procs[0].returncode)
-        self.assertEqual(set([_b('bar'), _b('baz')]), command._instances)
-        self.assertEqual(set([_b('baz')]), command._allocated_instances)
+        self.assertEqual(set([b'bar', b'baz']), command._instances)
+        self.assertEqual(set([b'baz']), command._allocated_instances)
 
     def test_run_tests_list_file_in_FILES(self):
         ui, command = self.get_test_ui_and_cmd()
         self.set_config(
             '[DEFAULT]\ntest_command=foo $IDFILE\n'
             'instance_execute=quux $INSTANCE_ID $FILES -- $COMMAND\n')
-        command._instances.add(_b('bar'))
+        command._instances.add(b'bar')
         fixture = self.useFixture(command.get_run_command(test_ids=['1']))
         list_file = fixture.list_file_name
         procs = fixture.run_tests()
@@ -492,12 +491,12 @@ class TestTestCommand(ResourcedTestCase):
              {'shell': True, 'stdin': -1, 'stdout': -1})],
             ui.outputs)
         # No --parallel, so the one instance should have been allocated.
-        self.assertEqual(set([_b('bar')]), command._instances)
-        self.assertEqual(set([_b('bar')]), command._allocated_instances)
+        self.assertEqual(set([b'bar']), command._instances)
+        self.assertEqual(set([b'bar']), command._allocated_instances)
         # And after the process is run, bar is returned for re-use.
         procs[0].stdout.read()
         self.assertEqual(0, procs[0].returncode)
-        self.assertEqual(set([_b('bar')]), command._instances)
+        self.assertEqual(set([b'bar']), command._instances)
         self.assertEqual(set(), command._allocated_instances)
 
     def test_filter_tags_parsing(self):
@@ -507,7 +506,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_callout_concurrency(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('4')]
+        ui.proc_outputs = [b'4']
         self.set_config(
             '[DEFAULT]\ntest_run_concurrency=probe\n'
             'test_command=foo\n')
@@ -556,7 +555,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_filter_tests_by_regex_supplied_ids(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('returned\nids\n')]
+        ui.proc_outputs = [b'returned\nids\n']
         self.set_config(
             '[DEFAULT]\ntest_command=foo $LISTOPT $IDLIST\ntest_id_list_default=whoo yea\n'
             'test_list_option=--list\n')
@@ -567,7 +566,7 @@ class TestTestCommand(ResourcedTestCase):
 
     def test_filter_tests_by_regex_supplied_ids_multi_match(self):
         ui, command = self.get_test_ui_and_cmd()
-        ui.proc_outputs = [_b('returned\nids\n')]
+        ui.proc_outputs = [b'returned\nids\n']
         self.set_config(
             '[DEFAULT]\ntest_command=foo $LISTOPT $IDLIST\ntest_id_list_default=whoo yea\n'
             'test_list_option=--list\n')

@@ -38,7 +38,6 @@ import os
 import sys
 
 import subunit
-from testtools.compat import _u
 
 from testrepository.repository import file
 
@@ -204,8 +203,8 @@ def get_command_parser(cmd):
     parser = OptionParser()
     for option in cmd.options:
         parser.add_option(option)
-    usage = _u('%%prog %(cmd)s [options] %(args)s\n\n%(help)s') % {
-        'args': _u(' ').join(map(lambda x:x.summary(), cmd.args)),
+    usage = '%%prog %(cmd)s [options] %(args)s\n\n%(help)s' % {
+        'args': ' '.join(map(lambda x:x.summary(), cmd.args)),
         'cmd': getattr(cmd, 'name', cmd),
         'help': getdoc(cmd),
         }

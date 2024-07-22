@@ -22,7 +22,7 @@ import sys
 
 import testtools
 from testtools import ExtendedToStreamDecorator, StreamToExtendedDecorator
-from testtools.compat import unicode_output_stream, _u
+from testtools.compat import unicode_output_stream
 
 from testrepository import ui
 from testrepository.commands import get_command_parser
@@ -41,19 +41,19 @@ class CLITestResult(ui.BaseUITestResult):
         """
         super(CLITestResult, self).__init__(ui, get_id, previous_run)
         self.stream = unicode_output_stream(stream)
-        self.sep1 = _u('=' * 70 + '\n')
-        self.sep2 = _u('-' * 70 + '\n')
+        self.sep1 = '=' * 70 + '\n'
+        self.sep2 = '-' * 70 + '\n'
         self.filter_tags = filter_tags or frozenset()
         self.filterable_states = set(['success', 'uxsuccess', 'xfail', 'skip'])
 
     def _format_error(self, label, test, error_text, test_tags=None):
         test_tags = test_tags or ()
-        tags = _u(' ').join(test_tags)
+        tags = ' '.join(test_tags)
         if tags:
-            tags = _u('tags: %s\n') % tags
-        return _u('').join([
+            tags = 'tags: %s\n' % tags
+        return ''.join([
             self.sep1,
-            _u('%s: %s\n') % (label, test.id()),
+            '%s: %s\n' % (label, test.id()),
             tags,
             self.sep2,
             error_text,
@@ -68,7 +68,7 @@ class CLITestResult(ui.BaseUITestResult):
             mime_type=mime_type, route_code=route_code, timestamp=timestamp)
         if test_status == 'fail':
             self.stream.write(
-                self._format_error(_u('FAIL'), *(self._summary.errors[-1]),
+                self._format_error('FAIL', *(self._summary.errors[-1]),
                 test_tags=test_tags))
         if test_status not in self.filterable_states:
             return
@@ -124,30 +124,19 @@ class UI(ui.AbstractUI):
     def output_error(self, error_tuple):
         if 'TESTR_PDB' in os.environ:
             import traceback
-            self._stderr.write(_u('').join(traceback.format_tb(error_tuple[2])))
-            self._stderr.write(_u('\n'))
-            # This is terrible: it is because on Python2.x pdb writes bytes to
-            # its pipes, and the test suite uses io.StringIO that refuse bytes.
-            import pdb;
-            if sys.version_info[0]==2:
-                if isinstance(self._stdout, io.StringIO):
-                    write = self._stdout.write
-                    def _write(text):
-                        return write(text.decode('utf8'))
-                    self._stdout.write = _write
+            self._stderr.write(''.join(traceback.format_tb(error_tuple[2])))
+            self._stderr.write('\n')
+            import pdb
             p = pdb.Pdb(stdin=self._stdin, stdout=self._stdout)
             p.reset()
             p.interaction(None, error_tuple[2])
         error_type = str(error_tuple[1])
-        # XX: Python2.
-        if type(error_type) is bytes:
-            error_type = error_type.decode('utf8')
-        self._stderr.write(error_type + _u('\n'))
+        self._stderr.write(error_type + '\n')
 
     def output_rest(self, rest_string):
         self._stdout.write(rest_string)
         if not rest_string.endswith('\n'):
-            self._stdout.write(_u('\n'))
+            self._stdout.write('\n')
 
     def output_stream(self, stream):
         if not self._binary_stdout:
@@ -198,22 +187,18 @@ class UI(ui.AbstractUI):
             outputs.append('  ')
         for row in contents[1:]:
             show_row(row)
-        self._stdout.write(_u('').join(outputs))
+        self._stdout.write(''.join(outputs))
 
     def output_tests(self, tests):
         for test in tests:
-            # On Python 2.6 id() returns bytes.
-            id_str = test.id()
-            if type(id_str) is bytes:
-                id_str = id_str.decode('utf8')
-            self._stdout.write(id_str)
-            self._stdout.write(_u('\n'))
+            self._stdout.write(test.id())
+            self._stdout.write('\n')
 
     def output_values(self, values):
         outputs = []
         for label, value in values:
             outputs.append('%s=%s' % (label, value))
-        self._stdout.write(_u('%s\n' % ', '.join(outputs)))
+        self._stdout.write('%s\n' % ', '.join(outputs))
 
     def _format_summary(self, successful, tests, tests_delta,
                         time, time_delta, values):
@@ -248,14 +233,14 @@ class UI(ui.AbstractUI):
                 values_strings.append(value_str)
             a(', '.join(values_strings))
             a(')')
-        return _u('').join(summary)
+        return ''.join(summary)
 
     def output_summary(self, successful, tests, tests_delta,
                        time, time_delta, values):
         self._stdout.write(
             self._format_summary(
                 successful, tests, tests_delta, time, time_delta, values))
-        self._stdout.write(_u('\n'))
+        self._stdout.write('\n')
 
     def _check_cmd(self):
         parser = get_command_parser(self.cmd)
@@ -291,12 +276,12 @@ class UI(ui.AbstractUI):
             except ValueError:
                 exc_info = sys.exc_info()
                 failed = True
-                self._stderr.write(_u("%s\n") % str(exc_info[1]))
+                self._stderr.write("%s\n" % str(exc_info[1]))
                 break
         if not failed:
             self.arguments = parsed_args
             if args != []:
-                self._stderr.write(_u("Unexpected arguments: %r\n") % args)
+                self._stderr.write("Unexpected arguments: %r\n" % args)
         return not failed and args == []
 
     def _clear_SIGPIPE(self):

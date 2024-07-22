@@ -19,8 +19,6 @@ from io import BytesIO
 from subunit import ByteStreamToStreamResult
 from testtools.testresult.doubles import StreamResult
 
-from testtools.compat import _b, _u
-
 
 def write_list(stream, test_ids):
     """Write test_ids out to stream.
@@ -28,13 +26,12 @@ def write_list(stream, test_ids):
     :param stream: A file-like object.
     :param test_ids: An iterable of test ids.
     """
-    # May need utf8 explicitly?
-    stream.write(_b('\n'.join(list(test_ids) + [''])))
+    stream.write(('\n'.join(list(test_ids) + [''])).encode('utf8'))
 
 
 def parse_list(list_bytes):
     """Parse list_bytes into a list of test ids."""
-    return [id.strip() for id in list_bytes.decode('utf8').split(_u('\n'))
+    return [id.strip() for id in list_bytes.decode('utf8').split('\n')
             if id.strip()]
 
 

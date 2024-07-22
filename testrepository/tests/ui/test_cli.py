@@ -26,7 +26,6 @@ from fixtures import EnvironmentVariable
 import subunit
 import testtools
 from testtools import TestCase
-from testtools.compat import _b, _u
 from testtools.matchers import (
     DocTestMatches,
     MatchesException,
@@ -68,7 +67,7 @@ class TestCLIUI(ResourcedTestCase):
 
     def test_stream_comes_from_stdin(self):
         stdout = BytesIO()
-        stdin = BytesIO(_b('foo\n'))
+        stdin = BytesIO(b'foo\n')
         stderr = BytesIO()
         ui = cli.UI([], stdin, stdout, stderr)
         cmd = commands.Command(ui)
@@ -77,13 +76,13 @@ class TestCLIUI(ResourcedTestCase):
         results = []
         for stream in ui.iter_streams('subunit'):
             results.append(stream.read())
-        self.assertEqual([_b('foo\n')], results)
+        self.assertEqual([b'foo\n'], results)
 
     def test_stream_type_honoured(self):
         # The CLI UI has only one stdin, so when a command asks for a stream
         # type it didn't declare, no streams are found.
         stdout = BytesIO()
-        stdin = BytesIO(_b('foo\n'))
+        stdin = BytesIO(b'foo\n')
         stderr = BytesIO()
         ui = cli.UI([], stdin, stdout, stderr)
         cmd = commands.Command(ui)
@@ -96,7 +95,7 @@ class TestCLIUI(ResourcedTestCase):
 
     def test_dash_d_sets_here_option(self):
         stdout = BytesIO()
-        stdin = BytesIO(_b('foo\n'))
+        stdin = BytesIO(b'foo\n')
         stderr = BytesIO()
         ui = cli.UI(['-d', '/nowhere/'], stdin, stdout, stderr)
         cmd = commands.Command(ui)
@@ -133,7 +132,7 @@ class TestCLIUI(ResourcedTestCase):
         # - this code is the most pragmatic to test on 2.6 and up, and 3.2 and
         # up.
         stdout = StringIO()
-        stdin = StringIO(_u('c\n'))
+        stdin = StringIO('c\n')
         stderr = StringIO()
         ui = cli.UI([], stdin, stdout, stderr)
         ui.output_error(err_tuple)
@@ -142,8 +141,8 @@ class TestCLIUI(ResourcedTestCase):
 
     def test_outputs_rest_to_stdout(self):
         ui, cmd = get_test_ui_and_cmd()
-        ui.output_rest(_u('topic\n=====\n'))
-        self.assertEqual(_b('topic\n=====\n'), ui._stdout.buffer.getvalue())
+        ui.output_rest('topic\n=====\n')
+        self.assertEqual(b'topic\n=====\n', ui._stdout.buffer.getvalue())
 
     def test_outputs_results_to_stdout(self):
         ui, cmd = get_test_ui_and_cmd()
@@ -167,14 +166,14 @@ AssertionError: quux...
 
     def test_outputs_stream_to_stdout(self):
         ui, cmd = get_test_ui_and_cmd()
-        stream = BytesIO(_b("Foo \n bar"))
+        stream = BytesIO(b"Foo \n bar")
         ui.output_stream(stream)
-        self.assertEqual(_b("Foo \n bar"), ui._stdout.buffer.getvalue())
+        self.assertEqual(b"Foo \n bar", ui._stdout.buffer.getvalue())
 
     def test_outputs_tables_to_stdout(self):
         ui, cmd = get_test_ui_and_cmd()
         ui.output_table([('foo', 1), ('b', 'quux')])
-        self.assertEqual(_b('foo  1\n---  ----\nb    quux\n'),
+        self.assertEqual(b'foo  1\n---  ----\nb    quux\n',
             ui._stdout.buffer.getvalue())
 
     def test_outputs_tests_to_stdout(self):
@@ -189,14 +188,14 @@ AssertionError: quux...
     def test_outputs_values_to_stdout(self):
         ui, cmd = get_test_ui_and_cmd()
         ui.output_values([('foo', 1), ('bar', 'quux')])
-        self.assertEqual(_b('foo=1, bar=quux\n'), ui._stdout.buffer.getvalue())
+        self.assertEqual(b'foo=1, bar=quux\n', ui._stdout.buffer.getvalue())
 
     def test_outputs_summary_to_stdout(self):
         ui, cmd = get_test_ui_and_cmd()
         summary = [True, 1, None, 2, None, []]
         expected_summary = ui._format_summary(*summary)
         ui.output_summary(*summary)
-        self.assertEqual(_b("%s\n" % (expected_summary,)),
+        self.assertEqual(("%s\n" % (expected_summary,)).encode('utf8'),
             ui._stdout.buffer.getvalue())
 
     def test_parse_error_goes_to_stderr(self):
@@ -363,7 +362,7 @@ class TestCLITestResult(TestCase):
         stream = TextIOWrapper(bytestream, 'utf8', line_buffering=True)
         ui = cli.UI(None, None, None, None)
         cli.CLITestResult(ui, stream, lambda: None)
-        self.assertEqual(_b(''), bytestream.getvalue())
+        self.assertEqual(b'', bytestream.getvalue())
 
     def test_format_error(self):
         # CLITestResult formats errors by giving them a big fat line, a title
@@ -408,7 +407,7 @@ class TestCLITestResult(TestCase):
         result.status(test_id='foo', test_status='fail', file_name='traceback',
             mime_type='text/plain;charset=utf8',
             file_bytes=b'-->\xe2\x80\x9c<--', eof=True)
-        pattern = _u("...-->?<--...")
+        pattern = "...-->?<--..."
         self.assertThat(
             stream.getvalue().decode('utf8'),
             DocTestMatches(pattern, doctest.ELLIPSIS))

@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2009 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -27,7 +27,6 @@ from testrepository.tests.stubpackage import TempDirResource
 
 
 class FileRepositoryFixture(Fixture):
-
     def __init__(self, case):
         self.tempdir = case.tempdir
         self.resource = case.resources[0][1]
@@ -43,26 +42,25 @@ class HomeDirTempDir(Fixture):
 
     def setUp(self):
         super(HomeDirTempDir, self).setUp()
-        home_dir = os.path.expanduser('~')
+        home_dir = os.path.expanduser("~")
         self.temp_dir = tempfile.mkdtemp(dir=home_dir)
         self.addCleanup(shutil.rmtree, self.temp_dir)
-        self.short_path = os.path.join('~', os.path.basename(self.temp_dir))
+        self.short_path = os.path.join("~", os.path.basename(self.temp_dir))
 
 
 class TestFileRepository(ResourcedTestCase):
-
-    resources = [('tempdir', TempDirResource())]
+    resources = [("tempdir", TempDirResource())]
 
     def test_initialise(self):
         self.useFixture(FileRepositoryFixture(self))
-        base = os.path.join(self.tempdir, '.testrepository')
-        stream = open(os.path.join(base, 'format'), 'rt')
+        base = os.path.join(self.tempdir, ".testrepository")
+        stream = open(os.path.join(base, "format"), "rt")
         try:
             contents = stream.read()
         finally:
             stream.close()
         self.assertEqual("1\n", contents)
-        stream = open(os.path.join(base, 'next-stream'), 'rt')
+        stream = open(os.path.join(base, "next-stream"), "rt")
         try:
             contents = stream.read()
         finally:
@@ -79,7 +77,7 @@ class TestFileRepository(ResourcedTestCase):
         inserter = repo.get_inserter()
         inserter.startTestRun()
         inserter.stopTestRun()
-        self.assertTrue(os.path.exists(os.path.join(repo.base, '0')))
+        self.assertTrue(os.path.exists(os.path.join(repo.base, "0")))
 
     def test_inserting_creates_id(self):
         # When inserting a stream, an id is returned from stopTestRun.
@@ -97,14 +95,16 @@ class TestFileRepository(ResourcedTestCase):
 
     def test_next_stream_corruption_error(self):
         repo = self.useFixture(FileRepositoryFixture(self)).repo
-        open(os.path.join(repo.base, 'next-stream'), 'wb').close()
-        self.assertThat(repo.count, Raises(
-            MatchesException(ValueError("Corrupt next-stream file: ''"))))
+        open(os.path.join(repo.base, "next-stream"), "wb").close()
+        self.assertThat(
+            repo.count,
+            Raises(MatchesException(ValueError("Corrupt next-stream file: ''"))),
+        )
 
     def test_get_test_run_unexpected_ioerror_errno(self):
         repo = self.useFixture(FileRepositoryFixture(self)).repo
         inserter = repo.get_inserter()
         inserter.startTestRun()
         inserter.stopTestRun()
-        os.chmod(os.path.join(repo.base, '0'), 0000)
-        self.assertRaises(IOError, repo.get_test_run, '0')
+        os.chmod(os.path.join(repo.base, "0"), 0000)
+        self.assertRaises(IOError, repo.get_test_run, "0")

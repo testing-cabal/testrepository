@@ -21,12 +21,11 @@ from testrepository.tests import ResourcedTestCase
 
 
 class TestDecoratorUI(ResourcedTestCase):
-
     def test_options_overridable(self):
-        base = model.UI(options=[('partial', True), ('other', False)])
+        base = model.UI(options=[("partial", True), ("other", False)])
         cmd = commands.Command(base)
         base.set_command(cmd)
-        ui = decorator.UI(options={'partial':False}, decorated=base)
+        ui = decorator.UI(options={"partial": False}, decorated=base)
         internal_cmd = commands.Command(ui)
         ui.set_command(internal_cmd)
         self.assertEqual(False, ui.options.partial)

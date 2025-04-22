@@ -27,6 +27,7 @@ from testrepository.commands import Command
 from testrepository.repository import RepositoryNotFound
 from testrepository.testcommand import TestCommand
 
+
 class InputToStreamResult(object):
     """Generate Stream events from stdin.
 
@@ -44,8 +45,8 @@ class InputToStreamResult(object):
             char = self.source.read(1)
             if not char:
                 return
-            if char == b'a':
-                result.status(test_id='stdin', test_status='fail')
+            if char == b"a":
+                result.status(test_id="stdin", test_status="fail")
 
 
 class load(Command):
@@ -57,22 +58,35 @@ class load(Command):
     Unless the stream is a partial stream, any existing failures are discarded.
     """
 
-    input_streams = ['subunit+', 'interactive?']
+    input_streams = ["subunit+", "interactive?"]
 
-    args = [ExistingPathArgument('streams', min=0, max=None)]
+    args = [ExistingPathArgument("streams", min=0, max=None)]
     options = [
-        optparse.Option("--partial", action="store_true",
-            default=False, help="The stream being loaded was a partial run."),
         optparse.Option(
-            "--force-init", action="store_true",
+            "--partial",
+            action="store_true",
             default=False,
-            help="Initialise the repository if it does not exist already"),
-        optparse.Option("--subunit", action="store_true",
-            default=False, help="Display results in subunit format."),
-        optparse.Option("--full-results", action="store_true",
+            help="The stream being loaded was a partial run.",
+        ),
+        optparse.Option(
+            "--force-init",
+            action="store_true",
             default=False,
-            help="No-op - deprecated and kept only for backwards compat."),
-        ]
+            help="Initialise the repository if it does not exist already",
+        ),
+        optparse.Option(
+            "--subunit",
+            action="store_true",
+            default=False,
+            help="Display results in subunit format.",
+        ),
+        optparse.Option(
+            "--full-results",
+            action="store_true",
+            default=False,
+            help="No-op - deprecated and kept only for backwards compat.",
+        ),
+    ]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
@@ -92,21 +106,25 @@ class load(Command):
         # XXX: Be nice if we could declare that the argument, which is a path,
         # is to be an input stream - and thus push this conditional down into
         # the UI object.
-        if self.ui.arguments.get('streams'):
-            opener = partial(open, mode='rb')
-            streams = map(opener, self.ui.arguments['streams'])
+        if self.ui.arguments.get("streams"):
+            opener = partial(open, mode="rb")
+            streams = map(opener, self.ui.arguments["streams"])
         else:
-            streams = self.ui.iter_streams('subunit')
-        mktagger = lambda pos, result:testtools.StreamTagger(
-            [result], add=['worker-%d' % pos])
+            streams = self.ui.iter_streams("subunit")
+        mktagger = lambda pos, result: testtools.StreamTagger(
+            [result], add=["worker-%d" % pos]
+        )
+
         def make_tests():
             for pos, stream in enumerate(streams):
                 # Calls StreamResult API.
                 case = subunit.ByteStreamToStreamResult(
-                    stream, non_subunit_name='stdout')
+                    stream, non_subunit_name="stdout"
+                )
                 decorate = partial(mktagger, pos)
                 case = testtools.DecorateTestCaseResult(case, decorate)
                 yield (case, str(pos))
+
         case = testtools.ConcurrentStreamTestSuite(make_tests)
         # One unmodified copy of the stream to repository storage
         inserter = repo.get_inserter(partial=self.ui.options.partial)
@@ -117,17 +135,17 @@ class load(Command):
         except KeyError:
             previous_run = None
         output_result, summary_result = self.ui.make_result(
-            inserter.get_id, testcommand, previous_run=previous_run)
+            inserter.get_id, testcommand, previous_run=previous_run
+        )
         result = testtools.CopyStreamResult([inserter, output_result])
         runner_thread = None
         result.startTestRun()
         try:
             # Convert user input into a stdin event stream
-            interactive_streams = list(self.ui.iter_streams('interactive'))
+            interactive_streams = list(self.ui.iter_streams("interactive"))
             if interactive_streams:
                 case = InputToStreamResult(interactive_streams[0])
-                runner_thread = threading.Thread(
-                    target=case.run, args=(result,))
+                runner_thread = threading.Thread(target=case.run, args=(result,))
                 runner_thread.daemon = True
                 runner_thread.start()
             case.run(result)

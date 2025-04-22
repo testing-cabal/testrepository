@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -25,7 +25,7 @@ from testrepository.testcommand import TestCommand
 
 class failing(Command):
     """Show the current failures known by the repository.
-    
+
     Today this is the failures from the most recent run, but once partial
     and full runs are understood it will be all the failures from the last
     full run combined with any failures in subsequent partial runs, minus any
@@ -39,12 +39,18 @@ class failing(Command):
 
     options = [
         optparse.Option(
-            "--subunit", action="store_true",
-            default=False, help="Show output as a subunit stream."),
+            "--subunit",
+            action="store_true",
+            default=False,
+            help="Show output as a subunit stream.",
+        ),
         optparse.Option(
-            "--list", action="store_true",
-            default=False, help="Show only a list of failing tests."),
-        ]
+            "--list",
+            action="store_true",
+            default=False,
+            help="Show only a list of failing tests.",
+        ),
+    ]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
@@ -80,7 +86,6 @@ class failing(Command):
         else:
             result = 0
         if self.ui.options.list:
-            failing_tests = [
-                test for test, _ in summary.errors + summary.failures]
+            failing_tests = [test for test, _ in summary.errors + summary.failures]
             self.ui.output_tests(failing_tests)
         return result

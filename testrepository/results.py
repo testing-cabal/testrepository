@@ -17,13 +17,12 @@ import subunit
 from testtools import (
     StreamSummary,
     StreamResult,
-    )
+)
 
 from testrepository.utils import timedelta_to_seconds
 
 
 class SummarizingResult(StreamSummary):
-
     def __init__(self):
         super(SummarizingResult, self).__init__()
 
@@ -33,8 +32,8 @@ class SummarizingResult(StreamSummary):
         self._last_time = None
 
     def status(self, *args, **kwargs):
-        if kwargs.get('timestamp') is not None:
-            timestamp = kwargs['timestamp']
+        if kwargs.get("timestamp") is not None:
+            timestamp = kwargs["timestamp"]
             if self._last_time is None:
                 self._first_time = timestamp
                 self._last_time = timestamp
@@ -53,21 +52,31 @@ class SummarizingResult(StreamSummary):
         return timedelta_to_seconds(self._last_time - self._first_time)
 
 
-#XXX: Should be in testtools.
+# XXX: Should be in testtools.
 class CatFiles(StreamResult):
     """Cat file attachments received to a stream."""
-        
+
     def __init__(self, byte_stream):
         self.stream = subunit.make_stream_binary(byte_stream)
         self.last_file = None
 
-    def status(self, test_id=None, test_status=None, test_tags=None,
-        runnable=True, file_name=None, file_bytes=None, eof=False,
-        mime_type=None, route_code=None, timestamp=None):
+    def status(
+        self,
+        test_id=None,
+        test_status=None,
+        test_tags=None,
+        runnable=True,
+        file_name=None,
+        file_bytes=None,
+        eof=False,
+        mime_type=None,
+        route_code=None,
+        timestamp=None,
+    ):
         if file_name is None:
             return
         if self.last_file != file_name:
-            self.stream.write(("--- %s ---\n" % file_name).encode('utf8'))
+            self.stream.write(("--- %s ---\n" % file_name).encode("utf8"))
             self.last_file = file_name
         self.stream.write(file_bytes)
         self.stream.flush()

@@ -37,10 +37,15 @@ jobs:
           python3 -m pip install -U wheel setuptools
           python3 -m pip install sphinx
           python3 -m pip install ".[test]"
+          python3 -m pip install ruff
 
       - name: Tests
         run: |
           python -W once -m testtools.run testrepository.tests.test_suite
+
+      - name: Check formatting
+        run: |
+          ruff format --check .
 
   success:
     needs: build

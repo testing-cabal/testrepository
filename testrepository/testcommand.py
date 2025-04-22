@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -33,7 +33,7 @@ from testrepository import results
 from testrepository.testlist import (
     parse_enumeration,
     write_list,
-    )
+)
 
 testrconf_help = dedent("""
     Configuring via .testr.conf:
@@ -90,7 +90,7 @@ testrconf_help = dedent("""
 
 class CallWhenProcFinishes(object):
     """Convert a process object to trigger a callback when returncode is set.
-    
+
     This just wraps the entire object and when the returncode attribute access
     finds a set value, calls the callback.
     """
@@ -129,14 +129,27 @@ class CallWhenProcFinishes(object):
         return self._proc.wait()
 
 
-compiled_re_type = type(re.compile(''))
+compiled_re_type = type(re.compile(""))
+
 
 class TestListingFixture(Fixture):
     """Write a temporary file to disk with test ids in it."""
 
-    def __init__(self, test_ids, cmd_template, listopt, idoption, ui,
-        repository, parallel=True, listpath=None, parser=None,
-        test_filters=None, instance_source=None, group_callback=None):
+    def __init__(
+        self,
+        test_ids,
+        cmd_template,
+        listopt,
+        idoption,
+        ui,
+        repository,
+        parallel=True,
+        listpath=None,
+        parser=None,
+        test_filters=None,
+        instance_source=None,
+        group_callback=None,
+    ):
         """Create a TestListingFixture.
 
         :param test_ids: The test_ids to use. May be None indicating that
@@ -189,25 +202,29 @@ class TestListingFixture(Fixture):
 
     def setUp(self):
         super(TestListingFixture, self).setUp()
-        variable_regex = '\$(IDOPTION|IDFILE|IDLIST|LISTOPT)'
+        variable_regex = "\$(IDOPTION|IDFILE|IDLIST|LISTOPT)"
         variables = {}
-        list_variables = {'LISTOPT': self.listopt}
+        list_variables = {"LISTOPT": self.listopt}
         cmd = self.template
         try:
-            default_idstr = self._parser.get('DEFAULT', 'test_id_list_default')
-            list_variables['IDLIST'] = default_idstr
+            default_idstr = self._parser.get("DEFAULT", "test_id_list_default")
+            list_variables["IDLIST"] = default_idstr
             # In theory we should also support casting this into IDFILE etc -
             # needs this horrible class refactored.
         except configparser.NoOptionError as e:
             if e.message != "No option 'test_id_list_default' in section: 'DEFAULT'":
                 raise
             default_idstr = None
+
         def list_subst(match):
-            return list_variables.get(match.groups(1)[0], '')
+            return list_variables.get(match.groups(1)[0], "")
+
         self.list_cmd = re.sub(variable_regex, list_subst, cmd)
-        nonparallel = (not self.parallel or not
-            getattr(self.ui, 'options', None) or not
-            getattr(self.ui.options, 'parallel', None))
+        nonparallel = (
+            not self.parallel
+            or not getattr(self.ui, "options", None)
+            or not getattr(self.ui.options, "parallel", None)
+        )
         if nonparallel:
             self.concurrency = 1
         else:
@@ -229,22 +246,24 @@ class TestListingFixture(Fixture):
         if self.test_ids is None:
             # No test ids to supply to the program.
             self.list_file_name = None
-            name = ''
-            idlist = ''
+            name = ""
+            idlist = ""
         else:
             self.test_ids = self.filter_tests(self.test_ids)
             name = self.make_listfile()
-            variables['IDFILE'] = name
-            idlist = ' '.join(self.test_ids)
-        variables['IDLIST'] = idlist
+            variables["IDFILE"] = name
+            idlist = " ".join(self.test_ids)
+        variables["IDLIST"] = idlist
+
         def subst(match):
-            return variables.get(match.groups(1)[0], '')
+            return variables.get(match.groups(1)[0], "")
+
         if self.test_ids is None:
             # No test ids, no id option.
-            idoption = ''
+            idoption = ""
         else:
             idoption = re.sub(variable_regex, subst, self.idoption)
-            variables['IDOPTION'] = idoption
+            variables["IDOPTION"] = idoption
         self.cmd = re.sub(variable_regex, subst, cmd)
 
     def make_listfile(self):
@@ -252,10 +271,10 @@ class TestListingFixture(Fixture):
         try:
             if self._listpath:
                 name = self._listpath
-                stream = open(name, 'wb')
+                stream = open(name, "wb")
             else:
                 fd, name = tempfile.mkstemp()
-                stream = os.fdopen(fd, 'wb')
+                stream = os.fdopen(fd, "wb")
             self.list_file_name = name
             write_list(stream, self.test_ids)
             stream.close()
@@ -268,16 +287,18 @@ class TestListingFixture(Fixture):
 
     def filter_tests(self, test_ids):
         """Filter test_ids by the test_filters.
-        
+
         :return: A list of test ids.
         """
         if self.test_filters is None:
             return test_ids
         filters = list(map(re.compile, self.test_filters))
+
         def include(test_id):
             for pred in filters:
                 if pred.search(test_id):
                     return True
+
         return list(filter(include, test_ids))
 
     def list_tests(self):
@@ -285,24 +306,26 @@ class TestListingFixture(Fixture):
 
         :return: A list of test ids.
         """
-        if '$LISTOPT' not in self.template:
+        if "$LISTOPT" not in self.template:
             raise ValueError("LISTOPT not configured in .testr.conf")
         instance, list_cmd = self._per_instance_command(self.list_cmd)
         try:
-            self.ui.output_values([('running', list_cmd)])
-            run_proc = self.ui.subprocess_Popen(list_cmd, shell=True,
-                stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+            self.ui.output_values([("running", list_cmd)])
+            run_proc = self.ui.subprocess_Popen(
+                list_cmd, shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+            )
             out, err = run_proc.communicate()
             if run_proc.returncode != 0:
                 new_out = io.BytesIO()
-                ByteStreamToStreamResult(io.BytesIO(out), 'stdout').run(
-                    results.CatFiles(new_out))
+                ByteStreamToStreamResult(io.BytesIO(out), "stdout").run(
+                    results.CatFiles(new_out)
+                )
                 out = new_out.getvalue()
                 self.ui.output_stream(io.BytesIO(out))
                 self.ui.output_stream(io.BytesIO(err))
                 raise ValueError(
-                    "Non-zero exit code (%d) from test listing."
-                    % (run_proc.returncode))
+                    "Non-zero exit code (%d) from test listing." % (run_proc.returncode)
+                )
             ids = parse_enumeration(out)
             return ids
         finally:
@@ -311,7 +334,7 @@ class TestListingFixture(Fixture):
 
     def _per_instance_command(self, cmd):
         """Customise cmd to with an instance-id.
-        
+
         :param concurrency: The number of instances to ask for (used to avoid
             death-by-1000 cuts of latency.
         """
@@ -320,17 +343,18 @@ class TestListingFixture(Fixture):
         instance = self._instance_source.obtain_instance(self.concurrency)
         if instance is not None:
             try:
-                instance_prefix = self._parser.get(
-                    'DEFAULT', 'instance_execute')
+                instance_prefix = self._parser.get("DEFAULT", "instance_execute")
                 variables = {
-                    'INSTANCE_ID': instance.decode('utf8'),
-                    'COMMAND': cmd,
+                    "INSTANCE_ID": instance.decode("utf8"),
+                    "COMMAND": cmd,
                     # --list-tests cannot use FILES, so handle it being unset.
-                    'FILES': getattr(self, 'list_file_name', None) or '',
+                    "FILES": getattr(self, "list_file_name", None) or "",
                 }
-                variable_regex = '\$(INSTANCE_ID|COMMAND|FILES)'
+                variable_regex = "\$(INSTANCE_ID|COMMAND|FILES)"
+
                 def subst(match):
-                    return variables.get(match.groups(1)[0], '')
+                    return variables.get(match.groups(1)[0], "")
+
                 cmd = re.sub(variable_regex, subst, instance_prefix)
             except configparser.NoOptionError:
                 # Per-instance execution environment not configured.
@@ -348,16 +372,21 @@ class TestListingFixture(Fixture):
             # Have to customise cmd here, as instances are allocated
             # just-in-time. XXX: Indicates this whole region needs refactoring.
             instance, cmd = self._per_instance_command(self.cmd)
-            self.ui.output_values([('running', cmd)])
-            run_proc = self.ui.subprocess_Popen(cmd, shell=True,
-                stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+            self.ui.output_values([("running", cmd)])
+            run_proc = self.ui.subprocess_Popen(
+                cmd, shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+            )
             # Prevent processes stalling if they read from stdin; we could
             # pass this through in future, but there is no point doing that
             # until we have a working can-run-debugger-inline story.
             run_proc.stdin.close()
             if instance:
-                return [CallWhenProcFinishes(run_proc,
-                    lambda:self._instance_source.release_instance(instance))]
+                return [
+                    CallWhenProcFinishes(
+                        run_proc,
+                        lambda: self._instance_source.release_instance(instance),
+                    )
+                ]
             else:
                 return [run_proc]
         test_id_groups = self.partition_tests(test_ids, self.concurrency)
@@ -365,10 +394,19 @@ class TestListingFixture(Fixture):
             if not test_ids:
                 # No tests in this partition
                 continue
-            fixture = self.useFixture(TestListingFixture(test_ids,
-                self.template, self.listopt, self.idoption, self.ui,
-                self.repository, parallel=False, parser=self._parser,
-                instance_source=self._instance_source))
+            fixture = self.useFixture(
+                TestListingFixture(
+                    test_ids,
+                    self.template,
+                    self.listopt,
+                    self.idoption,
+                    self.ui,
+                    self.repository,
+                    parallel=False,
+                    parser=self._parser,
+                    instance_source=self._instance_source,
+                )
+            )
             result.extend(fixture.run_tests())
         return result
 
@@ -377,7 +415,7 @@ class TestListingFixture(Fixture):
 
         Test durations from the repository are used to get partitions which
         have roughly the same expected runtime. New tests - those with no
-        recorded duration - are allocated in round-robin fashion to the 
+        recorded duration - are allocated in round-robin fashion to the
         partitions created using test durations.
 
         :return: A list where each element is a distinct subset of test_ids,
@@ -386,12 +424,12 @@ class TestListingFixture(Fixture):
         partitions = [list() for i in range(concurrency)]
         timed_partitions = [[0.0, partition] for partition in partitions]
         time_data = self.repository.get_test_times(test_ids)
-        timed_tests = time_data['known']
-        unknown_tests = time_data['unknown']
+        timed_tests = time_data["known"]
+        unknown_tests = time_data["unknown"]
         # Group tests: generate group_id -> test_ids.
         group_ids = defaultdict(list)
         if self._group_callback is None:
-            group_callback = lambda _:None
+            group_callback = lambda _: None
         else:
             group_callback = self._group_callback
         for test_id in test_ids:
@@ -408,14 +446,19 @@ class TestListingFixture(Fixture):
         unknown = []
         for group_id, group_tests in group_ids.items():
             untimed_ids = unknown_tests.intersection(group_tests)
-            group_time = sum([timed_tests[test_id]
-                for test_id in untimed_ids.symmetric_difference(group_tests)])
+            group_time = sum(
+                [
+                    timed_tests[test_id]
+                    for test_id in untimed_ids.symmetric_difference(group_tests)
+                ]
+            )
             if not untimed_ids:
                 timed[group_id] = group_time
             elif group_time:
                 partial[group_id] = group_time
             else:
                 unknown.append(group_id)
+
         # Scheduling is NP complete in general, so we avoid aiming for
         # perfection. A quick approximation that is sufficient for our general
         # needs:
@@ -423,16 +466,16 @@ class TestListingFixture(Fixture):
         # allocate to partitions by putting each group in to the partition with
         # the current (lowest time, shortest length[in tests])
         def consume_queue(groups):
-            queue = sorted(
-                groups.items(), key=operator.itemgetter(1), reverse=True)
+            queue = sorted(groups.items(), key=operator.itemgetter(1), reverse=True)
             for group_id, duration in queue:
                 timed_partitions[0][0] = timed_partitions[0][0] + duration
                 timed_partitions[0][1].extend(group_ids[group_id])
-                timed_partitions.sort(key=lambda item:(item[0], len(item[1])))
+                timed_partitions.sort(key=lambda item: (item[0], len(item[1])))
+
         consume_queue(timed)
         consume_queue(partial)
         # Assign groups with entirely unknown times in round robin fashion to
-        # the partitions. 
+        # the partitions.
         for partition, group_id in zip(itertools.cycle(partitions), unknown):
             partition.extend(group_ids[group_id])
         return partitions
@@ -440,17 +483,18 @@ class TestListingFixture(Fixture):
     def callout_concurrency(self):
         """Callout for user defined concurrency."""
         try:
-            concurrency_cmd = self._parser.get(
-                'DEFAULT', 'test_run_concurrency')
+            concurrency_cmd = self._parser.get("DEFAULT", "test_run_concurrency")
         except configparser.NoOptionError:
             return None
-        run_proc = self.ui.subprocess_Popen(concurrency_cmd, shell=True,
-            stdout=subprocess.PIPE, stdin=subprocess.PIPE)
+        run_proc = self.ui.subprocess_Popen(
+            concurrency_cmd, shell=True, stdout=subprocess.PIPE, stdin=subprocess.PIPE
+        )
         out, err = run_proc.communicate()
         if run_proc.returncode:
             raise ValueError(
-                "test_run_concurrency failed: exit code %d, stderr='%s'" % (
-                run_proc.returncode, err.decode('utf8', 'replace')))
+                "test_run_concurrency failed: exit code %d, stderr='%s'"
+                % (run_proc.returncode, err.decode("utf8", "replace"))
+            )
         return int(out.strip())
 
     def local_concurrency(self):
@@ -463,7 +507,7 @@ class TestListingFixture(Fixture):
 
 class TestCommand(Fixture):
     """Represents the test command defined in .testr.conf.
-    
+
     :ivar run_factory: The fixture to use to execute a command.
     :ivar oldschool: Use failing.list rather than a unique file path.
 
@@ -473,7 +517,7 @@ class TestCommand(Fixture):
     happens. This is not done per-run-command, because test bisection (amongst
     other things) uses multiple get_run_command configurations.
     """
-    
+
     run_factory = TestListingFixture
     oldschool = False
 
@@ -504,68 +548,73 @@ class TestCommand(Fixture):
         self._instances = None
         self._allocated_instances = None
         try:
-            dispose_cmd = self.get_parser().get('DEFAULT', 'instance_dispose')
+            dispose_cmd = self.get_parser().get("DEFAULT", "instance_dispose")
         except (ValueError, configparser.NoOptionError):
             return
-        variable_regex = '\$INSTANCE_IDS'
-        dispose_cmd = re.sub(variable_regex, ' '.join(sorted(instance.decode('utf') for instance in instances)),
-            dispose_cmd)
-        self.ui.output_values([('running', dispose_cmd)])
+        variable_regex = "\$INSTANCE_IDS"
+        dispose_cmd = re.sub(
+            variable_regex,
+            " ".join(sorted(instance.decode("utf") for instance in instances)),
+            dispose_cmd,
+        )
+        self.ui.output_values([("running", dispose_cmd)])
         run_proc = self.ui.subprocess_Popen(dispose_cmd, shell=True)
         run_proc.communicate()
         if run_proc.returncode:
-            raise ValueError('Disposing of instances failed, return %d' %
-                run_proc.returncode)
+            raise ValueError(
+                "Disposing of instances failed, return %d" % run_proc.returncode
+            )
 
     def get_parser(self):
         """Get a parser with the .testr.conf in it."""
         parser = configparser.ConfigParser()
         # This possibly should push down into UI.
-        if self.ui.here == 'memory:':
+        if self.ui.here == "memory:":
             return parser
-        if not parser.read(os.path.join(self.ui.here, '.testr.conf')):
+        if not parser.read(os.path.join(self.ui.here, ".testr.conf")):
             raise ValueError("No .testr.conf config file")
         return parser
 
     def get_run_command(self, test_ids=None, testargs=(), test_filters=None):
         """Get the command that would be run to run tests.
-        
+
         See TestListingFixture for the definition of test_ids and test_filters.
         """
         if self._instances is None:
-            raise TypeError('TestCommand not setUp')
+            raise TypeError("TestCommand not setUp")
         parser = self.get_parser()
         try:
-            command = parser.get('DEFAULT', 'test_command')
+            command = parser.get("DEFAULT", "test_command")
         except configparser.NoOptionError as e:
             if e.message != "No option 'test_command' in section: 'DEFAULT'":
                 raise
             raise ValueError("No test_command option present in .testr.conf")
         elements = [command] + list(testargs)
-        cmd = ' '.join(elements)
-        idoption = ''
-        if '$IDOPTION' in command:
+        cmd = " ".join(elements)
+        idoption = ""
+        if "$IDOPTION" in command:
             # IDOPTION is used, we must have it configured.
             try:
-                idoption = parser.get('DEFAULT', 'test_id_option')
+                idoption = parser.get("DEFAULT", "test_id_option")
             except configparser.NoOptionError as e:
                 if e.message != "No option 'test_id_option' in section: 'DEFAULT'":
                     raise
                 raise ValueError("No test_id_option option present in .testr.conf")
-        listopt = ''
-        if '$LISTOPT' in command:
+        listopt = ""
+        if "$LISTOPT" in command:
             # LISTOPT is used, test_list_option must be configured.
             try:
-                listopt = parser.get('DEFAULT', 'test_list_option')
+                listopt = parser.get("DEFAULT", "test_list_option")
             except configparser.NoOptionError as e:
                 if e.message != "No option 'test_list_option' in section: 'DEFAULT'":
                     raise
                 raise ValueError("No test_list_option option present in .testr.conf")
         try:
-            group_regex = parser.get('DEFAULT', 'group_regex')
+            group_regex = parser.get("DEFAULT", "group_regex")
         except configparser.NoOptionError:
             group_regex = None
         if group_regex:
+
             def group_callback(test_id, regex=re.compile(group_regex)):
                 match = regex.match(test_id)
                 if match:
@@ -573,22 +622,39 @@ class TestCommand(Fixture):
         else:
             group_callback = None
         if self.oldschool:
-            listpath = os.path.join(self.ui.here, 'failing.list')
-            result = self.run_factory(test_ids, cmd, listopt, idoption,
-                self.ui, self.repository, listpath=listpath, parser=parser,
-                test_filters=test_filters, instance_source=self,
-                group_callback=group_callback)
+            listpath = os.path.join(self.ui.here, "failing.list")
+            result = self.run_factory(
+                test_ids,
+                cmd,
+                listopt,
+                idoption,
+                self.ui,
+                self.repository,
+                listpath=listpath,
+                parser=parser,
+                test_filters=test_filters,
+                instance_source=self,
+                group_callback=group_callback,
+            )
         else:
-            result = self.run_factory(test_ids, cmd, listopt, idoption,
-                self.ui, self.repository, parser=parser,
-                test_filters=test_filters, instance_source=self,
-                group_callback=group_callback)
+            result = self.run_factory(
+                test_ids,
+                cmd,
+                listopt,
+                idoption,
+                self.ui,
+                self.repository,
+                parser=parser,
+                test_filters=test_filters,
+                instance_source=self,
+                group_callback=group_callback,
+            )
         return result
 
     def get_filter_tags(self):
         parser = self.get_parser()
         try:
-            tags = parser.get('DEFAULT', 'filter_tags')
+            tags = parser.get("DEFAULT", "filter_tags")
         except configparser.NoOptionError as e:
             if e.message != "No option 'filter_tags' in section: 'DEFAULT'":
                 raise
@@ -597,26 +663,25 @@ class TestCommand(Fixture):
 
     def obtain_instance(self, concurrency):
         """If possible, get one or more test run environment instance ids.
-        
+
         Note this is not threadsafe: calling it from multiple threads would
         likely result in shared results.
         """
         while len(self._instances) < concurrency:
             try:
-                cmd = self.get_parser().get('DEFAULT', 'instance_provision')
+                cmd = self.get_parser().get("DEFAULT", "instance_provision")
             except configparser.NoOptionError:
                 # Instance allocation not configured
                 return None
-            variable_regex = '\$INSTANCE_COUNT'
-            cmd = re.sub(variable_regex,
-                str(concurrency - len(self._instances)), cmd)
-            self.ui.output_values([('running', cmd)])
-            proc = self.ui.subprocess_Popen(
-                cmd, shell=True, stdout=subprocess.PIPE)
+            variable_regex = "\$INSTANCE_COUNT"
+            cmd = re.sub(variable_regex, str(concurrency - len(self._instances)), cmd)
+            self.ui.output_values([("running", cmd)])
+            proc = self.ui.subprocess_Popen(cmd, shell=True, stdout=subprocess.PIPE)
             out, _ = proc.communicate()
             if proc.returncode:
-                raise ValueError('Provisioning instances failed, return %d' %
-                    proc.returncode)
+                raise ValueError(
+                    "Provisioning instances failed, return %d" % proc.returncode
+                )
             new_instances = set([item.strip() for item in out.split()])
             self._instances.update(new_instances)
         # Cached first.

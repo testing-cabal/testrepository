@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2009, 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -26,7 +26,7 @@ from testrepository.repository import (
     AbstractRepositoryFactory,
     AbstractTestRun,
     RepositoryNotFound,
-    )
+)
 
 
 class RepositoryFactory(AbstractRepositoryFactory):
@@ -56,8 +56,8 @@ class Repository(AbstractRepository):
     def __init__(self):
         # Test runs:
         self._runs = []
-        self._failing = OrderedDict() # id -> test
-        self._times = {} # id -> duration
+        self._failing = OrderedDict()  # id -> test
+        self._times = {}  # id -> duration
 
     def count(self):
         return len(self._runs)
@@ -118,9 +118,10 @@ class _Failures(AbstractTestRun):
             # Wrap that in ExtendedToStreamDecorator to convert v1 calls to
             # StreamResult.
             return testtools.ExtendedToStreamDecorator(result)
+
         return testtools.DecorateTestCaseResult(
-            self, wrap_result, methodcaller('startTestRun'),
-            methodcaller('stopTestRun'))
+            self, wrap_result, methodcaller("startTestRun"), methodcaller("stopTestRun")
+        )
 
     def run(self, result):
         # Speaks original V1 protocol.
@@ -141,21 +142,22 @@ class _Inserter(AbstractTestRun):
     def startTestRun(self):
         self._subunit = BytesIO()
         serialiser = subunit.v2.StreamResultToBytes(self._subunit)
-        self._hook = testtools.CopyStreamResult([
-            testtools.StreamToDict(self._handle_test),
-            serialiser])
+        self._hook = testtools.CopyStreamResult(
+            [testtools.StreamToDict(self._handle_test), serialiser]
+        )
         self._hook.startTestRun()
 
     def _handle_test(self, test_dict):
         self._tests.append(test_dict)
-        start, stop = test_dict['timestamps']
-        if test_dict['status'] == 'exists' or None in (start, stop):
+        start, stop = test_dict["timestamps"]
+        if test_dict["status"] == "exists" or None in (start, stop):
             return
         duration_delta = stop - start
-        duration_seconds = ((duration_delta.microseconds +
-            (duration_delta.seconds + duration_delta.days * 24 * 3600)
-            * 10**6) / 10.0**6)
-        self._repository._times[test_dict['id']] = duration_seconds
+        duration_seconds = (
+            duration_delta.microseconds
+            + (duration_delta.seconds + duration_delta.days * 24 * 3600) * 10**6
+        ) / 10.0**6
+        self._repository._times[test_dict["id"]] = duration_seconds
 
     def stopTestRun(self):
         self._hook.stopTestRun()
@@ -164,8 +166,8 @@ class _Inserter(AbstractTestRun):
         if not self._partial:
             self._repository._failing = OrderedDict()
         for test_dict in self._tests:
-            test_id = test_dict['id']
-            if test_dict['status'] == 'fail':
+            test_id = test_dict["id"]
+            if test_dict["status"] == "fail":
                 case = testtools.testresult.real.test_dict_to_case(test_dict)
                 self._repository._failing[test_id] = case
             else:
@@ -190,9 +192,10 @@ class _Inserter(AbstractTestRun):
             # Wrap that in ExtendedToStreamDecorator to convert v1 calls to
             # StreamResult.
             return testtools.ExtendedToStreamDecorator(result)
+
         return testtools.DecorateTestCaseResult(
-            self, wrap_result, methodcaller('startTestRun'),
-            methodcaller('stopTestRun'))
+            self, wrap_result, methodcaller("startTestRun"), methodcaller("stopTestRun")
+        )
 
     def run(self, result):
         # Speaks original.

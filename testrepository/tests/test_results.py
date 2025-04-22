@@ -15,7 +15,7 @@
 from datetime import (
     datetime,
     timedelta,
-    )
+)
 import sys
 
 from testtools import TestCase
@@ -24,7 +24,6 @@ from testrepository.results import SummarizingResult
 
 
 class TestSummarizingResult(TestCase):
-
     def test_empty(self):
         result = SummarizingResult()
         result.startTestRun()
@@ -46,11 +45,11 @@ class TestSummarizingResult(TestCase):
         result = SummarizingResult()
         result.startTestRun()
         try:
-            1/0
+            1 / 0
         except ZeroDivisionError:
             error = sys.exc_info()
-        result.status(test_id='foo', test_status='fail')
-        result.status(test_id='foo', test_status='fail')
+        result.status(test_id="foo", test_status="fail")
+        result.status(test_id="foo", test_status="fail")
         result.stopTestRun()
         self.assertEqual(2, result.get_num_failures())
 
@@ -58,6 +57,6 @@ class TestSummarizingResult(TestCase):
         result = SummarizingResult()
         result.startTestRun()
         for i in range(5):
-            result.status(test_id='foo', test_status='success')
+            result.status(test_id="foo", test_status="success")
         result.stopTestRun()
         self.assertEqual(5, result.testsRun)

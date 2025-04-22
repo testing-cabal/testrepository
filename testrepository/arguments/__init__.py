@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -61,19 +61,18 @@ class AbstractArgument(object):
     def summary(self):
         """Get a regex-like summary of this argument."""
         result = self.name
-        if (self.minimum_count == self.maximum_count and
-            self.minimum_count == 1):
-                return result
+        if self.minimum_count == self.maximum_count and self.minimum_count == 1:
+            return result
         minmax = (self.minimum_count, self.maximum_count)
         if minmax == (0, 1):
-            return result + '?'
+            return result + "?"
         if minmax == (1, None):
-            return result + '+'
+            return result + "+"
         if minmax == (0, None):
-            return result + '*'
+            return result + "*"
         if minmax[1] == None:
-            minmax = (minmax[0], '')
-        return result + '{%s,%s}' % minmax
+            minmax = (minmax[0], "")
+        return result + "{%s,%s}" % minmax
 
     def parse(self, argv):
         """Evaluate arguments in argv.
@@ -87,7 +86,8 @@ class AbstractArgument(object):
         result = []
         error = None
         while len(argv) > count and (
-            self.maximum_count is None or count < self.maximum_count):
+            self.maximum_count is None or count < self.maximum_count
+        ):
             arg = argv[count]
             count += 1
             try:
@@ -100,13 +100,13 @@ class AbstractArgument(object):
         if count < self.minimum_count:
             if error is not None:
                 raise error[1].with_traceback(error[2])
-            raise ValueError('not enough arguments present/matched in %s' % argv)
+            raise ValueError("not enough arguments present/matched in %s" % argv)
         del argv[:count]
         return result
 
     def _parse_one(self, arg):
         """Parse a single argument.
-        
+
         :param arg: An arg from an argv.
         :result: The parsed argument.
         :raises ValueError: If the arg cannot be parsed/validated.

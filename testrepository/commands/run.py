@@ -23,7 +23,7 @@ import subunit
 import testtools
 from testtools import (
     TestByTestResult,
-    )
+)
 
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument
@@ -35,7 +35,7 @@ from testrepository.testcommand import TestCommand, testrconf_help
 from testrepository.testlist import parse_list
 
 
-LINEFEED = b'\n'[0]
+LINEFEED = b"\n"[0]
 
 
 class ReturnCodeToSubunit(object):
@@ -73,17 +73,21 @@ class ReturnCodeToSubunit(object):
                 # line. V2 needs to start on any fresh utf8 character border
                 # - which is not guaranteed in an arbitrary stream endpoint, so
                 # injecting a \n gives us such a guarantee.
-                self.source.write(b'\n')
+                self.source.write(b"\n")
             stream = subunit.StreamResultToBytes(self.source)
-            stream.status(test_id='process-returncode', test_status='fail',
-                file_name='traceback', mime_type='text/plain;charset=utf8',
-                file_bytes=('returncode %d' % returncode).encode('utf8'))
+            stream.status(
+                test_id="process-returncode",
+                test_status="fail",
+                file_name="traceback",
+                mime_type="text/plain;charset=utf8",
+                file_bytes=("returncode %d" % returncode).encode("utf8"),
+            )
         self.source.seek(0)
         self.done = True
 
     def read(self, count=-1):
         if count == 0:
-            return b''
+            return b""
         result = self.source.read(count)
         if result:
             self.lastoutput = result[-1]
@@ -109,42 +113,83 @@ class ReturnCodeToSubunit(object):
 
 
 class run(Command):
-    __doc__ = """Run the tests for a project and load them into testrepository.
-    """ + testrconf_help
+    __doc__ = (
+        """Run the tests for a project and load them into testrepository.
+    """
+        + testrconf_help
+    )
 
     options = [
-        optparse.Option("--failing", action="store_true",
-            default=False, help="Run only tests known to be failing."),
-        optparse.Option("--parallel", action="store_true",
-            default=False, help="Run tests in parallel processes."),
-        optparse.Option("--concurrency", action="store", type="int", default=0,
-            help="How many processes to use. The default (0) autodetects your CPU count."),
-        optparse.Option("--load-list", default=None,
-            help="Only run tests listed in the named file."),
-        optparse.Option("--partial", action="store_true",
-            default=False,
-            help="Only some tests will be run. Implied by --failing."),
-        optparse.Option("--subunit", action="store_true",
-            default=False, help="Display results in subunit format."),
         optparse.Option(
-            "--force-init", action="store_true",
+            "--failing",
+            action="store_true",
             default=False,
-            help="Initialise the repository if it does not exist already"),
-        optparse.Option("--full-results", action="store_true",
+            help="Run only tests known to be failing.",
+        ),
+        optparse.Option(
+            "--parallel",
+            action="store_true",
             default=False,
-            help="No-op - deprecated and kept only for backwards compat."),
-        optparse.Option("--until-failure", action="store_true",
+            help="Run tests in parallel processes.",
+        ),
+        optparse.Option(
+            "--concurrency",
+            action="store",
+            type="int",
+            default=0,
+            help="How many processes to use. The default (0) autodetects your CPU count.",
+        ),
+        optparse.Option(
+            "--load-list", default=None, help="Only run tests listed in the named file."
+        ),
+        optparse.Option(
+            "--partial",
+            action="store_true",
             default=False,
-            help="Repeat the run again and again until failure occurs."),
-        optparse.Option("--analyze-isolation", action="store_true",
+            help="Only some tests will be run. Implied by --failing.",
+        ),
+        optparse.Option(
+            "--subunit",
+            action="store_true",
             default=False,
-            help="Search the last test run for 2-test test isolation interactions."),
-        optparse.Option("--isolated", action="store_true",
+            help="Display results in subunit format.",
+        ),
+        optparse.Option(
+            "--force-init",
+            action="store_true",
             default=False,
-            help="Run each test id in a separate test runner."),
-        ]
-    args = [StringArgument('testfilters', 0, None), DoubledashArgument(),
-        StringArgument('testargs', 0, None)]
+            help="Initialise the repository if it does not exist already",
+        ),
+        optparse.Option(
+            "--full-results",
+            action="store_true",
+            default=False,
+            help="No-op - deprecated and kept only for backwards compat.",
+        ),
+        optparse.Option(
+            "--until-failure",
+            action="store_true",
+            default=False,
+            help="Repeat the run again and again until failure occurs.",
+        ),
+        optparse.Option(
+            "--analyze-isolation",
+            action="store_true",
+            default=False,
+            help="Search the last test run for 2-test test isolation interactions.",
+        ),
+        optparse.Option(
+            "--isolated",
+            action="store_true",
+            default=False,
+            help="Run each test id in a separate test runner.",
+        ),
+    ]
+    args = [
+        StringArgument("testfilters", 0, None),
+        DoubledashArgument(),
+        StringArgument("testargs", 0, None),
+    ]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
@@ -152,9 +197,11 @@ class run(Command):
         run = repo.get_failing()
         case = run.get_test()
         ids = []
+
         def gather_errors(test_dict):
-            if test_dict['status'] == 'fail':
-                ids.append(test_dict['id'])
+            if test_dict["status"] == "fail":
+                ids.append(test_dict["id"])
+
         result = testtools.StreamToDict(gather_errors)
         result.startTestRun()
         try:
@@ -178,7 +225,7 @@ class run(Command):
         if self.ui.options.load_list:
             list_ids = set()
             # Should perhaps be text.. currently does its own decode.
-            with open(self.ui.options.load_list, 'rb') as list_file:
+            with open(self.ui.options.load_list, "rb") as list_file:
                 list_ids = set(parse_list(list_file.read()))
             if ids is None:
                 # Use the supplied list verbatim
@@ -187,16 +234,17 @@ class run(Command):
                 # We have some already limited set of ids, just reduce to ids
                 # that are both failing and listed.
                 ids = list_ids.intersection(ids)
-        if self.ui.arguments['testfilters']:
-            filters = self.ui.arguments['testfilters']
+        if self.ui.arguments["testfilters"]:
+            filters = self.ui.arguments["testfilters"]
         else:
             filters = None
         testcommand = self.command_factory(self.ui, repo)
         testcommand.setUp()
         try:
             if not self.ui.options.analyze_isolation:
-                cmd = testcommand.get_run_command(ids, self.ui.arguments['testargs'],
-                    test_filters = filters)
+                cmd = testcommand.get_run_command(
+                    ids, self.ui.arguments["testargs"], test_filters=filters
+                )
                 if self.ui.options.isolated:
                     result = 0
                     cmd.setUp()
@@ -205,8 +253,11 @@ class run(Command):
                     finally:
                         cmd.cleanUp()
                     for test_id in ids:
-                        cmd = testcommand.get_run_command([test_id],
-                            self.ui.arguments['testargs'], test_filters=filters)
+                        cmd = testcommand.get_run_command(
+                            [test_id],
+                            self.ui.arguments["testargs"],
+                            test_filters=filters,
+                        )
                         run_result = self._run_tests(cmd)
                         if run_result > result:
                             result = run_result
@@ -223,8 +274,9 @@ class run(Command):
                 # reduced by testfilters) to eliminate fails-on-own tests.
                 spurious_failures = set()
                 for test_id in ids:
-                    cmd = testcommand.get_run_command([test_id],
-                        self.ui.arguments['testargs'], test_filters = filters)
+                    cmd = testcommand.get_run_command(
+                        [test_id], self.ui.arguments["testargs"], test_filters=filters
+                    )
                     if not self._run_tests(cmd):
                         # If the test was filtered, it won't have been run.
                         if test_id in repo.get_test_ids(repo.latest_id()):
@@ -245,24 +297,26 @@ class run(Command):
                 # spurious-failure -> cause.
                 test_conflicts = {}
                 for spurious_failure in spurious_failures:
-                    candidate_causes = self._prior_tests(
-                        latest_run, spurious_failure)
+                    candidate_causes = self._prior_tests(latest_run, spurious_failure)
                     bottom = 0
                     top = len(candidate_causes)
                     width = top - bottom
                     while width:
                         check_width = int(ceil(width / 2.0))
                         cmd = testcommand.get_run_command(
-                            candidate_causes[bottom:bottom + check_width]
+                            candidate_causes[bottom : bottom + check_width]
                             + [spurious_failure],
-                            self.ui.arguments['testargs'])
+                            self.ui.arguments["testargs"],
+                        )
                         self._run_tests(cmd)
                         # check that the test we're probing still failed - still
                         # awkward.
                         found_fail = []
+
                         def find_fail(test_dict):
-                            if test_dict['id'] == spurious_failure:
+                            if test_dict["id"] == spurious_failure:
                                 found_fail.append(True)
+
                         checker = testtools.StreamToDict(find_fail)
                         checker.startTestRun()
                         try:
@@ -274,8 +328,9 @@ class run(Command):
                             top = bottom + check_width
                             if width == 1:
                                 # found the cause
-                                test_conflicts[
-                                    spurious_failure] = candidate_causes[bottom]
+                                test_conflicts[spurious_failure] = candidate_causes[
+                                    bottom
+                                ]
                                 width = 0
                             else:
                                 width = top - bottom
@@ -290,9 +345,9 @@ class run(Command):
                                 width = top - bottom
                     if spurious_failure not in test_conflicts:
                         # Could not determine cause
-                        test_conflicts[spurious_failure] = 'unknown - no conflicts'
+                        test_conflicts[spurious_failure] = "unknown - no conflicts"
                 if test_conflicts:
-                    table = [('failing test', 'caused by test')]
+                    table = [("failing test", "caused by test")]
                     for failure, causes in test_conflicts.items():
                         table.append((failure, causes))
                     self.ui.output_table(table)
@@ -306,7 +361,7 @@ class run(Command):
 
         Tests that ran in a different worker are not included in the result.
         """
-        if not getattr(self, '_worker_to_test', False):
+        if not getattr(self, "_worker_to_test", False):
             # TODO: switch to route codes?
             case = run.get_test()
             # Use None if there is no worker-N tag
@@ -315,18 +370,20 @@ class run(Command):
             worker_to_test = {}
             # (testid -> [workerN, ...])
             test_to_worker = {}
+
             def map_test(test_dict):
-                tags = test_dict['tags']
-                id = test_dict['id']
+                tags = test_dict["tags"]
+                id = test_dict["id"]
                 workers = []
                 for tag in tags:
-                    if tag.startswith('worker-'):
+                    if tag.startswith("worker-"):
                         workers.append(tag)
                 if not workers:
                     workers = [None]
                 for worker in workers:
                     worker_to_test.setdefault(worker, []).append(id)
                 test_to_worker.setdefault(id, []).extend(workers)
+
             mapper = testtools.StreamToDict(map_test)
             mapper.startTestRun()
             try:
@@ -339,23 +396,31 @@ class run(Command):
         prior_tests = []
         for worker in failing_workers:
             worker_tests = self._worker_to_test[worker]
-            prior_tests.extend(worker_tests[:worker_tests.index(failing_id)])
+            prior_tests.extend(worker_tests[: worker_tests.index(failing_id)])
         return prior_tests
 
     def _run_tests(self, cmd):
         """Run the tests cmd was parameterised with."""
         cmd.setUp()
         try:
+
             def run_tests():
-                run_procs = [('subunit', ReturnCodeToSubunit(proc)) for proc in cmd.run_tests()]
+                run_procs = [
+                    ("subunit", ReturnCodeToSubunit(proc)) for proc in cmd.run_tests()
+                ]
                 options = {}
-                if (self.ui.options.failing or self.ui.options.analyze_isolation
-                    or self.ui.options.isolated):
-                    options['partial'] = True
-                load_ui = decorator.UI(input_streams=run_procs, options=options,
-                    decorated=self.ui)
+                if (
+                    self.ui.options.failing
+                    or self.ui.options.analyze_isolation
+                    or self.ui.options.isolated
+                ):
+                    options["partial"] = True
+                load_ui = decorator.UI(
+                    input_streams=run_procs, options=options, decorated=self.ui
+                )
                 load_cmd = load(load_ui)
                 return load_cmd.execute()
+
             if not self.ui.options.until_failure:
                 return run_tests()
             else:

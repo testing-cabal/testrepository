@@ -33,7 +33,7 @@ class CLITestResult(ui.BaseUITestResult):
 
     def __init__(self, ui, get_id, stream, previous_run=None, filter_tags=None):
         """Construct a CLITestResult writing to stream.
-        
+
         :param filter_tags: Tags that should be used to filter tests out. When
             a tag in this set is present on a test outcome, the test is not
             counted towards the test run count. If the test errors, then it is
@@ -41,35 +41,57 @@ class CLITestResult(ui.BaseUITestResult):
         """
         super(CLITestResult, self).__init__(ui, get_id, previous_run)
         self.stream = unicode_output_stream(stream)
-        self.sep1 = '=' * 70 + '\n'
-        self.sep2 = '-' * 70 + '\n'
+        self.sep1 = "=" * 70 + "\n"
+        self.sep2 = "-" * 70 + "\n"
         self.filter_tags = filter_tags or frozenset()
-        self.filterable_states = set(['success', 'uxsuccess', 'xfail', 'skip'])
+        self.filterable_states = set(["success", "uxsuccess", "xfail", "skip"])
 
     def _format_error(self, label, test, error_text, test_tags=None):
         test_tags = test_tags or ()
-        tags = ' '.join(test_tags)
+        tags = " ".join(test_tags)
         if tags:
-            tags = 'tags: %s\n' % tags
-        return ''.join([
-            self.sep1,
-            '%s: %s\n' % (label, test.id()),
-            tags,
-            self.sep2,
-            error_text,
-            ])
+            tags = "tags: %s\n" % tags
+        return "".join(
+            [
+                self.sep1,
+                "%s: %s\n" % (label, test.id()),
+                tags,
+                self.sep2,
+                error_text,
+            ]
+        )
 
-    def status(self, test_id=None, test_status=None, test_tags=None,
-        runnable=True, file_name=None, file_bytes=None, eof=False,
-        mime_type=None, route_code=None, timestamp=None):
-        super(CLITestResult, self).status(test_id=test_id,
-            test_status=test_status, test_tags=test_tags, runnable=runnable,
-            file_name=file_name, file_bytes=file_bytes, eof=eof,
-            mime_type=mime_type, route_code=route_code, timestamp=timestamp)
-        if test_status == 'fail':
+    def status(
+        self,
+        test_id=None,
+        test_status=None,
+        test_tags=None,
+        runnable=True,
+        file_name=None,
+        file_bytes=None,
+        eof=False,
+        mime_type=None,
+        route_code=None,
+        timestamp=None,
+    ):
+        super(CLITestResult, self).status(
+            test_id=test_id,
+            test_status=test_status,
+            test_tags=test_tags,
+            runnable=runnable,
+            file_name=file_name,
+            file_bytes=file_bytes,
+            eof=eof,
+            mime_type=mime_type,
+            route_code=route_code,
+            timestamp=timestamp,
+        )
+        if test_status == "fail":
             self.stream.write(
-                self._format_error('FAIL', *(self._summary.errors[-1]),
-                test_tags=test_tags))
+                self._format_error(
+                    "FAIL", *(self._summary.errors[-1]), test_tags=test_tags
+                )
+            )
         if test_status not in self.filterable_states:
             return
         if test_tags and test_tags.intersection(self.filter_tags):
@@ -98,13 +120,12 @@ class UI(ui.AbstractUI):
         # moment - as there is only one stdin and alternate streams are not yet
         # configurable in the CLI.
         first_stream_type = self.cmd.input_streams[0]
-        if (stream_type != first_stream_type
-            and stream_type != first_stream_type[:-1]):
+        if stream_type != first_stream_type and stream_type != first_stream_type[:-1]:
             return
         yield subunit.make_stream_binary(self._stdin)
 
     def make_result(self, get_id, test_command, previous_run=None):
-        if getattr(self.options, 'subunit', False):
+        if getattr(self.options, "subunit", False):
             serializer = subunit.StreamResultToBytes(self._stdout)
             # By pass user transforms - just forward it all,
             result = serializer
@@ -116,34 +137,36 @@ class UI(ui.AbstractUI):
         else:
             # Apply user defined transforms.
             filter_tags = test_command.get_filter_tags()
-            output = CLITestResult(self, get_id, self._stdout, previous_run,
-                filter_tags=filter_tags)
+            output = CLITestResult(
+                self, get_id, self._stdout, previous_run, filter_tags=filter_tags
+            )
             summary = output._summary
         return output, summary
 
     def output_error(self, error_tuple):
-        if 'TESTR_PDB' in os.environ:
+        if "TESTR_PDB" in os.environ:
             import traceback
-            self._stderr.write(''.join(traceback.format_tb(error_tuple[2])))
-            self._stderr.write('\n')
+
+            self._stderr.write("".join(traceback.format_tb(error_tuple[2])))
+            self._stderr.write("\n")
             import pdb
+
             p = pdb.Pdb(stdin=self._stdin, stdout=self._stdout)
             p.reset()
             p.interaction(None, error_tuple[2])
         error_type = str(error_tuple[1])
-        self._stderr.write(error_type + '\n')
+        self._stderr.write(error_type + "\n")
 
     def output_rest(self, rest_string):
         self._stdout.write(rest_string)
-        if not rest_string.endswith('\n'):
-            self._stdout.write('\n')
+        if not rest_string.endswith("\n"):
+            self._stdout.write("\n")
 
     def output_stream(self, stream):
         if not self._binary_stdout:
             self._binary_stdout = subunit.make_stream_binary(self._stdout)
         contents = stream.read(65536)
-        assert type(contents) is bytes, \
-            "Bad stream contents %r" % type(contents)
+        assert type(contents) is bytes, "Bad stream contents %r" % type(contents)
         # If there are unflushed bytes in the text wrapper, we need to sync..
         self._stdout.flush()
         while contents:
@@ -168,40 +191,41 @@ class UI(ui.AbstractUI):
                     widths[idx] = len(column)
         # Show a row
         outputs = []
+
         def show_row(row):
             for idx, column in enumerate(row):
                 outputs.append(column)
                 if idx == len(row) - 1:
-                    outputs.append('\n')
+                    outputs.append("\n")
                     return
                 # spacers for the next column
-                outputs.append(' '*(widths[idx]-len(column)))
-                outputs.append('  ')
+                outputs.append(" " * (widths[idx] - len(column)))
+                outputs.append("  ")
+
         show_row(contents[0])
         # title spacer
         for idx, width in enumerate(widths):
-            outputs.append('-'*width)
+            outputs.append("-" * width)
             if idx == len(widths) - 1:
-                outputs.append('\n')
+                outputs.append("\n")
                 continue
-            outputs.append('  ')
+            outputs.append("  ")
         for row in contents[1:]:
             show_row(row)
-        self._stdout.write(''.join(outputs))
+        self._stdout.write("".join(outputs))
 
     def output_tests(self, tests):
         for test in tests:
             self._stdout.write(test.id())
-            self._stdout.write('\n')
+            self._stdout.write("\n")
 
     def output_values(self, values):
         outputs = []
         for label, value in values:
-            outputs.append('%s=%s' % (label, value))
-        self._stdout.write('%s\n' % ', '.join(outputs))
+            outputs.append("%s=%s" % (label, value))
+        self._stdout.write("%s\n" % ", ".join(outputs))
 
-    def _format_summary(self, successful, tests, tests_delta,
-                        time, time_delta, values):
+    def _format_summary(self, successful, tests, tests_delta, time, time_delta, values):
         # We build the string by appending to a list of strings and then
         # joining trivially at the end. Avoids expensive string concatenation.
         summary = []
@@ -220,46 +244,58 @@ class UI(ui.AbstractUI):
         if summary:
             a("\n")
         if successful:
-            a('PASSED')
+            a("PASSED")
         else:
-            a('FAILED')
+            a("FAILED")
         if values:
-            a(' (')
+            a(" (")
             values_strings = []
             for name, value, delta in values:
-                value_str = '%s=%s' % (name, value)
+                value_str = "%s=%s" % (name, value)
                 if delta:
-                    value_str += ' (%+d)' % (delta,)
+                    value_str += " (%+d)" % (delta,)
                 values_strings.append(value_str)
-            a(', '.join(values_strings))
-            a(')')
-        return ''.join(summary)
+            a(", ".join(values_strings))
+            a(")")
+        return "".join(summary)
 
-    def output_summary(self, successful, tests, tests_delta,
-                       time, time_delta, values):
+    def output_summary(self, successful, tests, tests_delta, time, time_delta, values):
         self._stdout.write(
             self._format_summary(
-                successful, tests, tests_delta, time, time_delta, values))
-        self._stdout.write('\n')
+                successful, tests, tests_delta, time, time_delta, values
+            )
+        )
+        self._stdout.write("\n")
 
     def _check_cmd(self):
         parser = get_command_parser(self.cmd)
-        parser.add_option("-d", "--here", dest="here",
+        parser.add_option(
+            "-d",
+            "--here",
+            dest="here",
             help="Set the directory or url that a command should run from. "
             "This affects all default path lookups but does not affect paths "
-            "supplied to the command.", default=os.getcwd(), type=str)
-        parser.add_option("-q", "--quiet", action="store_true", default=False,
+            "supplied to the command.",
+            default=os.getcwd(),
+            type=str,
+        )
+        parser.add_option(
+            "-q",
+            "--quiet",
+            action="store_true",
+            default=False,
             help="Turn off output other than the primary output for a command "
-            "and any errors.")
+            "and any errors.",
+        )
         # yank out --, as optparse makes it silly hard to just preserve it.
         try:
-            where_dashdash = self._argv.index('--')
+            where_dashdash = self._argv.index("--")
             opt_argv = self._argv[:where_dashdash]
             other_args = self._argv[where_dashdash:]
         except ValueError:
             opt_argv = self._argv
             other_args = []
-        if '-h' in opt_argv or '--help' in opt_argv or '-?' in opt_argv:
+        if "-h" in opt_argv or "--help" in opt_argv or "-?" in opt_argv:
             self.output_rest(parser.format_help())
             # Fugly, but its what optparse does: we're just overriding the
             # output path.
@@ -290,8 +326,9 @@ class UI(ui.AbstractUI):
 
     def subprocess_Popen(self, *args, **kwargs):
         import subprocess
+
         if os.name == "posix":
             # GZ 2010-12-04: Should perhaps check for existing preexec_fn and
             #                combine so both will get called.
-            kwargs['preexec_fn'] = self._clear_SIGPIPE
+            kwargs["preexec_fn"] = self._clear_SIGPIPE
         return subprocess.Popen(*args, **kwargs)

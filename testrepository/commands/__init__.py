@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2009, 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -19,7 +19,7 @@ entry point to run CLI commands.
 
 Actual commands can be found in testrepository.commands.$commandname.
 
-For example, testrepository.commands.init is the init command name, and 
+For example, testrepository.commands.init is the init command name, and
 testrepository.command.show_stats would be the show-stats command (if one
 existed). The Command discovery logic looks for a class in the module with
 the same name - e.g. tesrepository.commands.init.init would be the class.
@@ -41,9 +41,10 @@ import subunit
 
 from testrepository.repository import file
 
+
 def _find_command(cmd_name):
     orig_cmd_name = cmd_name
-    cmd_name = cmd_name.replace('-', '_')
+    cmd_name = cmd_name.replace("-", "_")
     classname = "%s" % cmd_name
     modname = "testrepository.commands.%s" % cmd_name
     try:
@@ -54,8 +55,9 @@ def _find_command(cmd_name):
     if result is None:
         raise KeyError(
             "Malformed command module - no command class %s found in module %s."
-            % (classname, modname))
-    if getattr(result, 'name', None) is None:
+            % (classname, modname)
+        )
+    if getattr(result, "name", None) is None:
         # Store the name for the common case of name == lookup path.
         result.name = orig_cmd_name
     return result
@@ -69,13 +71,13 @@ def iter_commands():
         # For now, only support regular installs. TODO: support zip, eggs.
         for filename in os.listdir(path):
             base = os.path.basename(filename)
-            if base.startswith('.'):
+            if base.startswith("."):
                 continue
-            name = base.split('.', 1)[0]
-            name = name.replace('_', '-')
+            name = base.split(".", 1)[0]
+            name = name.replace("_", "-")
             names.add(name)
-    names.discard('--init--')
-    names.discard('--pycache--')
+    names.discard("--init--")
+    names.discard("--pycache--")
     names = sorted(names)
     for name in names:
         yield _find_command(name)
@@ -91,7 +93,7 @@ class Command(object):
     :ivar ui: a UI object which is responsible for brokering the command
         arguments, input and output. There is no default ui, it must be
         passed to the constructor.
-    
+
     :ivar repository_factory: a repository factory which is used to create or
         open repositories. The default repository factory is suitable for
         use in the command line tool.
@@ -129,7 +131,7 @@ class Command(object):
         This interrogates the UI to ensure that arguments and options are
         supplied, performs any validation for the same that the command needs
         and finally calls run() to perform the command. Most commands should
-        not need to override this method, and any user wanting to run a 
+        not need to override this method, and any user wanting to run a
         command should call this method.
 
         This is a synchronous method, and basically just a helper. GUI's or
@@ -150,7 +152,7 @@ class Command(object):
 
     @classmethod
     def get_summary(klass):
-        docs = klass.__doc__.split('\n')
+        docs = klass.__doc__.split("\n")
         return docs[0]
 
     def _init(self):
@@ -173,15 +175,16 @@ def run_argv(argv, stdin, stdout, stderr):
     cmd_name = None
     cmd_args = argv[1:]
     for arg in argv[1:]:
-        if not arg.startswith('-'):
+        if not arg.startswith("-"):
             cmd_name = arg
             break
     if cmd_name is None:
-        cmd_name = 'help'
-        cmd_args = ['help']
+        cmd_name = "help"
+        cmd_args = ["help"]
     cmd_args.remove(cmd_name)
     cmdclass = _find_command(cmd_name)
     from testrepository.ui import cli
+
     ui = cli.UI(cmd_args, stdin, stdout, stderr)
     cmd = cmdclass(ui)
     result = cmd.execute()
@@ -203,11 +206,11 @@ def get_command_parser(cmd):
     parser = OptionParser()
     for option in cmd.options:
         parser.add_option(option)
-    usage = '%%prog %(cmd)s [options] %(args)s\n\n%(help)s' % {
-        'args': ' '.join(map(lambda x:x.summary(), cmd.args)),
-        'cmd': getattr(cmd, 'name', cmd),
-        'help': getdoc(cmd),
-        }
+    usage = "%%prog %(cmd)s [options] %(args)s\n\n%(help)s" % {
+        "args": " ".join(map(lambda x: x.summary(), cmd.args)),
+        "cmd": getattr(cmd, "name", cmd),
+        "help": getdoc(cmd),
+    }
     parser.set_usage(usage)
     return parser
 

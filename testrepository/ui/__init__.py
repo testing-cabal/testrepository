@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2009 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -26,6 +26,7 @@ from testtools import StreamResult
 
 from testrepository.results import SummarizingResult
 from testrepository.utils import timedelta_to_seconds
+
 
 class AbstractUI(object):
     """The base class for UI objects, this providers helpers and the interface.
@@ -57,7 +58,7 @@ class AbstractUI(object):
 
     def _check_cmd(self):
         """Check that cmd is valid. This method is meant to be overridden.
-        
+
         :return: True if the cmd is valid - if options and args match up with
             the ones supplied to the UI, and so on.
         """
@@ -75,7 +76,7 @@ class AbstractUI(object):
             method and a close method which behave as for file objects.
         """
         for stream_spec in self.cmd.input_streams:
-            if '*' in stream_spec or '?' in stream_spec or '+' in stream_spec:
+            if "*" in stream_spec or "?" in stream_spec or "+" in stream_spec:
                 found = stream_type == stream_spec[:-1]
             else:
                 found = stream_type == stream_spec
@@ -118,7 +119,7 @@ class AbstractUI(object):
 
         This is typically used as the entire output for command help or
         documentation.
-        
+
         :param rest_string: A ReST source to display.
         """
         raise NotImplementedError(self.output_rest)
@@ -172,7 +173,7 @@ class AbstractUI(object):
         otherwise ensure that the information the command has declared it needs
         will be available. The default implementation simply sets self.cmd to
         cmd.
-        
+
         :param cmd: A testrepository.commands.Command.
         """
         self.cmd = cmd
@@ -180,7 +181,7 @@ class AbstractUI(object):
 
     def subprocess_Popen(self, *args, **kwargs):
         """Call an external process from the UI's context.
-        
+
         The behaviour of this call should match the Popen process on any given
         platform, except that the UI can take care of any wrapping or
         manipulation needed to fit into its environment.
@@ -228,13 +229,13 @@ class BaseUITestResult(StreamResult):
         time_delta = None
         num_tests_run_delta = None
         num_failures_delta = None
-        values = [('id', run_id, None)]
+        values = [("id", run_id, None)]
         failures = self._summary.get_num_failures()
         previous_summary = self._get_previous_summary()
         if failures:
             if previous_summary:
                 num_failures_delta = failures - previous_summary.get_num_failures()
-            values.append(('failures', failures, num_failures_delta))
+            values.append(("failures", failures, num_failures_delta))
         if previous_summary:
             num_tests_run_delta = self._summary.testsRun - previous_summary.testsRun
             if time:
@@ -243,10 +244,15 @@ class BaseUITestResult(StreamResult):
                     time_delta = time - previous_time_taken
         skips = len(self._summary.skipped)
         if skips:
-            values.append(('skips', skips, None))
+            values.append(("skips", skips, None))
         self.ui.output_summary(
-            not bool(failures), self._summary.testsRun, num_tests_run_delta,
-            time, time_delta, values)
+            not bool(failures),
+            self._summary.testsRun,
+            num_tests_run_delta,
+            time,
+            time_delta,
+            values,
+        )
 
     def startTestRun(self):
         super(BaseUITestResult, self).startTestRun()

@@ -22,7 +22,7 @@ The repository package contains the core storage code.
 The tests package contains tests and test specific support code.
 """
 
-__all__ = ['__version__']
+__all__ = ["__version__"]
 
 
 try:

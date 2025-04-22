@@ -110,10 +110,9 @@ class load(Command):
             streams = map(opener, self.ui.arguments["streams"])
         else:
             streams = self.ui.iter_streams("subunit")
+
         def mktagger(pos, result):
-            return testtools.StreamTagger(
-                    [result], add=["worker-%d" % pos]
-                )
+            return testtools.StreamTagger([result], add=["worker-%d" % pos])
 
         def make_tests():
             for pos, stream in enumerate(streams):

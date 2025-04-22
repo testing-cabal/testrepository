@@ -35,7 +35,7 @@ Create a config file::
 
 Create a repository::
 
-  ```sh
+```sh
   $ testr init
 ```
 

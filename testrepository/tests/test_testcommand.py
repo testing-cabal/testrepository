@@ -23,16 +23,14 @@ import subunit
 from testtools.matchers import (
     Equals,
     MatchesAny,
-    MatchesException,
     raises,
 )
-from testtools.testresult.doubles import ExtendedTestResult
 
 from testrepository.commands import run
 from testrepository.ui.model import UI
 from testrepository.repository import memory
 from testrepository.testcommand import TestCommand
-from testrepository.tests import ResourcedTestCase, Wildcard
+from testrepository.tests import ResourcedTestCase
 from testrepository.tests.stubpackage import TempDirResource
 from testrepository.tests.test_repository import run_timed
 
@@ -441,7 +439,6 @@ class TestTestCommand(ResourcedTestCase):
                 "testdir.testfile.TestCase5.test",
             ]
         )
-        regex = "TestCase[0-5]"
 
         def group_id(test_id, regex=re.compile("TestCase[0-5]")):
             match = regex.match(test_id)
@@ -472,7 +469,7 @@ class TestTestCommand(ResourcedTestCase):
         self.set_config("[DEFAULT]\ntest_command=foo $IDLIST\n")
         command._instances.update([b"foo", b"bar"])
         fixture = self.useFixture(command.get_run_command())
-        procs = fixture.run_tests()
+        fixture.run_tests()
         self.assertEqual(
             [
                 ("values", [("running", "foo ")]),

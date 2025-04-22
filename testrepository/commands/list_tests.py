@@ -16,7 +16,6 @@
 
 from io import BytesIO
 
-from testtools import TestResult
 
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument

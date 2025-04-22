@@ -22,19 +22,15 @@ import subunit
 import iso8601
 
 import testtools
-from testtools.content import text_content
 from testtools.matchers import MatchesException
-from testtools.tests.helpers import LoggingResult
 
 from testrepository.commands import load
 from testrepository.ui.model import UI
 from testrepository.tests import (
     ResourcedTestCase,
-    StubTestCommand,
     Wildcard,
 )
 from testrepository.tests.test_repository import RecordingRepositoryFactory
-from testrepository.tests.repository.test_file import HomeDirTempDir
 from testrepository.repository import memory, RepositoryNotFound
 
 

@@ -147,7 +147,7 @@ class Repository(AbstractRepository):
         try:
             result = {}
             for test_id in test_ids:
-                if type(test_id) != str:
+                if not isinstance(test_id, str):
                     test_id = test_id.encode("utf8")
                 # gdbm does not support get().
                 try:
@@ -262,7 +262,7 @@ class _SafeInserter(object):
         try:
             db_times = {}
             for key, value in self._times.items():
-                if type(key) != str:
+                if not isinstance(key, str):
                     key = key.encode("utf8")
                 db_times[key] = value
             if getattr(db, "update", None):

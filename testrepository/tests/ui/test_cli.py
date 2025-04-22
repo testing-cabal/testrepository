@@ -23,7 +23,6 @@ import sys
 from textwrap import dedent
 
 from fixtures import EnvironmentVariable
-import subunit
 import testtools
 from testtools import TestCase
 from testtools.matchers import (
@@ -423,7 +422,7 @@ class TestCLITestResult(TestCase):
         bytestream = BytesIO()
         stream = TextIOWrapper(bytestream, "utf8", line_buffering=True)
         result = self.make_result(stream)[0]
-        error = self.make_exc_info()
+        self.make_exc_info()
         error_text = "foo\nbar\n"
         result.startTestRun()
         result.status(

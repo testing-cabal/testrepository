@@ -47,7 +47,7 @@ class TestSummarizingResult(TestCase):
         try:
             1 / 0
         except ZeroDivisionError:
-            error = sys.exc_info()
+            sys.exc_info()
         result.status(test_id="foo", test_status="fail")
         result.status(test_id="foo", test_status="fail")
         result.stopTestRun()

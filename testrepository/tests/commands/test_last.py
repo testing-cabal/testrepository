@@ -18,7 +18,6 @@ from io import BytesIO
 
 from subunit.v2 import ByteStreamToStreamResult
 import testtools
-from testtools.matchers import Equals
 from testtools.testresult.doubles import StreamResult
 
 from testrepository.commands import last
@@ -26,7 +25,6 @@ from testrepository.ui.model import UI
 from testrepository.repository import memory
 from testrepository.tests import (
     ResourcedTestCase,
-    StubTestCommand,
     Wildcard,
 )
 

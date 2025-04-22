@@ -38,7 +38,7 @@ class TestArgument(ResourcedTestCase):
         arg = path.ExistingPathArgument("path")
         self.addCleanup(os.chdir, os.getcwd())
         os.chdir(base)
-        with open("--", "wt") as f:
+        with open("--", "wt"):
             pass
         self.assertThat(lambda: arg.parse(["--"]), raises(ValueError))
 

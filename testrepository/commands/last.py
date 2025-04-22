@@ -16,7 +16,6 @@
 
 import optparse
 
-import testtools
 
 from testrepository.commands import Command
 from testrepository.testcommand import TestCommand

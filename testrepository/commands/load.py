@@ -15,7 +15,6 @@
 """Load data into a repository."""
 
 from functools import partial
-from operator import methodcaller
 import optparse
 import threading
 
@@ -111,9 +110,9 @@ class load(Command):
             streams = map(opener, self.ui.arguments["streams"])
         else:
             streams = self.ui.iter_streams("subunit")
-        mktagger = lambda pos, result: testtools.StreamTagger(
-            [result], add=["worker-%d" % pos]
-        )
+
+        def mktagger(pos, result):
+            return testtools.StreamTagger([result], add=["worker-%d" % pos])
 
         def make_tests():
             for pos, stream in enumerate(streams):

@@ -24,10 +24,8 @@ from testtools.matchers import MatchesException
 from testrepository.commands import list_tests
 from testrepository.ui.model import UI
 from testrepository.repository import memory
-from testrepository.tests import ResourcedTestCase, Wildcard
+from testrepository.tests import ResourcedTestCase
 from testrepository.tests.stubpackage import TempDirResource
-from testrepository.tests.test_repository import make_test
-from testrepository.tests.test_testcommand import FakeTestCommand
 
 
 class TestCommand(ResourcedTestCase):

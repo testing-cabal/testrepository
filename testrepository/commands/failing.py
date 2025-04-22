@@ -17,7 +17,6 @@
 import optparse
 
 import testtools
-from testtools import ExtendedToStreamDecorator, MultiTestResult
 
 from testrepository.commands import Command
 from testrepository.testcommand import TestCommand

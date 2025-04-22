@@ -22,6 +22,9 @@ The repository package contains the core storage code.
 The tests package contains tests and test specific support code.
 """
 
+__all__ = ["__version__"]
+
+
 try:
     # If setuptools_scm is installed (e.g. in a development environment with
     # an editable install), then use it to determine the version dynamically.

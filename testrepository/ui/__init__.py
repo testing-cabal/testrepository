@@ -25,7 +25,6 @@ for.
 from testtools import StreamResult
 
 from testrepository.results import SummarizingResult
-from testrepository.utils import timedelta_to_seconds
 
 
 class AbstractUI(object):

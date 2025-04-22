@@ -14,7 +14,6 @@
 
 """Tests for matchers used by or for testing testrepository."""
 
-import sys
 from testtools import TestCase
 
 

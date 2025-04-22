@@ -17,7 +17,6 @@
 from io import BytesIO
 import optparse
 
-import testtools
 
 from testrepository import ui
 
@@ -141,10 +140,10 @@ class UI(ui.AbstractUI):
         for option, value in options:
             setattr(self.options, option, value)
             seen_options.add(option)
-        if not "quiet" in seen_options:
+        if "quiet" not in seen_options:
             setattr(self.options, "quiet", False)
         for option in self.cmd.options:
-            if not option.dest in seen_options:
+            if option.dest not in seen_options:
                 setattr(self.options, option.dest, option.default)
         args = list(self.unparsed_args)
         parsed_args = {}

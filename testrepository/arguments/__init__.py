@@ -70,7 +70,7 @@ class AbstractArgument(object):
             return result + "+"
         if minmax == (0, None):
             return result + "*"
-        if minmax[1] == None:
+        if minmax[1] is None:
             minmax = (minmax[0], "")
         return result + "{%s,%s}" % minmax
 

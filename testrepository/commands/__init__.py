@@ -37,8 +37,6 @@ from optparse import OptionParser
 import os
 import sys
 
-import subunit
-
 from testrepository.repository import file
 
 

@@ -14,13 +14,11 @@
 
 """Tests for the failing command."""
 
-import doctest
 from io import BytesIO
 
 from subunit.v2 import ByteStreamToStreamResult
 import testtools
 from testtools.matchers import (
-    DocTestMatches,
     Equals,
 )
 from testtools.testresult.doubles import StreamResult
@@ -30,7 +28,6 @@ from testrepository.ui.model import UI
 from testrepository.repository import memory
 from testrepository.tests import (
     ResourcedTestCase,
-    StubTestCommand,
     Wildcard,
 )
 

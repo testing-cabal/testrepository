@@ -18,7 +18,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-import doctest
 import iso8601
 
 from subunit import (
@@ -36,7 +35,7 @@ from testtools.testresult.doubles import (
     ExtendedTestResult,
     StreamResult,
 )
-from testtools.matchers import DocTestMatches, raises
+from testtools.matchers import raises
 
 from testrepository import repository
 from testrepository.repository import file, memory
@@ -372,7 +371,7 @@ class TestRepositoryContract(ResourcedTestCase):
         second = timedelta(seconds=1)
         repo = self.repo_impl.initialise(self.sample_url)
         test_id = self.getUniqueString()
-        test = make_test(test_id, True)
+        make_test(test_id, True)
         result = repo.get_inserter()
         result.startTestRun()
         result.status(timestamp=now, test_id=test_id, test_status="inprogress")

@@ -20,7 +20,6 @@ from datetime import (
     timezone,
 )
 
-from testtools import PlaceHolder
 
 from testrepository.commands import slowest
 from testrepository.ui.model import UI
@@ -39,7 +38,7 @@ class TestCommand(ResourcedTestCase):
         """Having no tests leads to an error and no output."""
         ui, cmd = self.get_test_ui_and_cmd()
         cmd.repository_factory = memory.RepositoryFactory()
-        repo = cmd.repository_factory.initialise(ui.here)
+        cmd.repository_factory.initialise(ui.here)
         self.assertEqual(3, cmd.execute())
         self.assertEqual([], ui.outputs)
 

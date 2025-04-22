@@ -20,7 +20,6 @@ import subprocess
 import sys
 
 from fixtures import EnvironmentVariable
-from testtools.content import text_content
 from testtools.matchers import raises
 
 from testrepository import arguments, commands
@@ -73,10 +72,10 @@ class TestUIContract(ResourcedTestCase):
         return ui
 
     def test_factory_noargs(self):
-        ui = self.ui_factory()
+        self.ui_factory()
 
     def test_factory_input_stream_args(self):
-        ui = self.ui_factory([("subunit", b"value")])
+        self.ui_factory([("subunit", b"value")])
 
     def test_here(self):
         ui = self.get_test_ui()

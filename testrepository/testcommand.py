@@ -429,7 +429,8 @@ class TestListingFixture(Fixture):
         # Group tests: generate group_id -> test_ids.
         group_ids = defaultdict(list)
         if self._group_callback is None:
-            group_callback = lambda _: None
+            def group_callback(_):
+                return None
         else:
             group_callback = self._group_callback
         for test_id in test_ids:

@@ -24,7 +24,6 @@ from fixtures import (
     MonkeyPatch,
 )
 import subunit
-from subunit import RemotedTestCase
 from testscenarios.scenarios import multiply_scenarios
 from testtools.matchers import (
     Equals,
@@ -40,7 +39,6 @@ from testrepository.testlist import write_list
 from testrepository.tests import ResourcedTestCase, Wildcard
 from testrepository.tests.stubpackage import TempDirResource
 from testrepository.tests.test_testcommand import FakeTestCommand
-from testrepository.tests.test_repository import make_test
 
 
 class TestCommand(ResourcedTestCase):

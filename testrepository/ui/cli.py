@@ -14,14 +14,12 @@
 
 """A command line UI for testrepository."""
 
-import io
 import os
 import signal
 import subunit
 import sys
 
 import testtools
-from testtools import ExtendedToStreamDecorator, StreamToExtendedDecorator
 from testtools.compat import unicode_output_stream
 
 from testrepository import ui

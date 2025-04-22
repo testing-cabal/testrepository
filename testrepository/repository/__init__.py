@@ -27,7 +27,7 @@ Repositories are identified by their URL, and new ones are made by calling
 the initialize function in the appropriate repository module.
 """
 
-from testtools import StreamToDict, TestResult
+from testtools import StreamToDict
 
 
 class AbstractRepositoryFactory(object):

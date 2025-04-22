@@ -17,13 +17,9 @@
 from io import BytesIO
 from math import ceil
 import optparse
-import re
 
 import subunit
 import testtools
-from testtools import (
-    TestByTestResult,
-)
 
 from testrepository.arguments.doubledash import DoubledashArgument
 from testrepository.arguments.string import StringArgument

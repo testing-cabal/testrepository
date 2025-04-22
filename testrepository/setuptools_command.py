@@ -39,24 +39,27 @@ logger.info("imported")
 
 
 class Testr(cmd.Command):
-
     description = "Run unit tests using testr"
 
     user_options = [
-        ('coverage', None, "Replace PYTHON with coverage and merge coverage "
-         "from each testr worker."),
-        ('testr-args=', 't', "Run 'testr' with these args"),
-        ('omit=', 'o', 'Files to omit from coverage calculations'),
-        ('coverage-package-name=', None, "Use this name for coverage package"),
-        ('slowest', None, "Show slowest test times after tests complete."),
+        (
+            "coverage",
+            None,
+            "Replace PYTHON with coverage and merge coverage from each testr worker.",
+        ),
+        ("testr-args=", "t", "Run 'testr' with these args"),
+        ("omit=", "o", "Files to omit from coverage calculations"),
+        ("coverage-package-name=", None, "Use this name for coverage package"),
+        ("slowest", None, "Show slowest test times after tests complete."),
     ]
 
-    boolean_options = ['coverage', 'slowest']
+    boolean_options = ["coverage", "slowest"]
 
     def _run_testr(self, *args):
         logger.info("_run_testr called")
-        return commands.run_argv([sys.argv[0]] + list(args),
-                                 sys.stdin, sys.stdout, sys.stderr)
+        return commands.run_argv(
+            [sys.argv[0]] + list(args), sys.stdin, sys.stdout, sys.stderr
+        )
 
     def initialize_options(self):
         logger.info("initialize_options called")
@@ -85,10 +88,9 @@ class Testr(cmd.Command):
             self._coverage_before()
         testr_ret = self._run_testr("run", "--parallel", *self.testr_args)
         if testr_ret:
-            raise distutils.errors.DistutilsError(
-                "testr failed (%d)" % testr_ret)
+            raise distutils.errors.DistutilsError("testr failed (%d)" % testr_ret)
         if self.slowest:
-            print ("Slowest Tests")
+            print("Slowest Tests")
             self._run_testr("slowest")
         if self.coverage:
             self._coverage_after()
@@ -96,15 +98,15 @@ class Testr(cmd.Command):
     def _coverage_before(self):
         logger.info("_coverage_before called")
         package = self.distribution.get_name()
-        if package.startswith('python-'):
+        if package.startswith("python-"):
             package = package[7:]
 
         # Use this as coverage package name
         if self.coverage_package_name:
             package = self.coverage_package_name
         options = "--source %s --parallel-mode" % package
-        os.environ['PYTHON'] = ("coverage run %s" % options)
-        logger.info("os.environ['PYTHON'] = %r", os.environ['PYTHON'])
+        os.environ["PYTHON"] = "coverage run %s" % options
+        logger.info("os.environ['PYTHON'] = %r", os.environ["PYTHON"])
 
     def _coverage_after(self):
         logger.info("_coverage_after called")

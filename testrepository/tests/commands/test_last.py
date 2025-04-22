@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -28,11 +28,10 @@ from testrepository.tests import (
     ResourcedTestCase,
     StubTestCommand,
     Wildcard,
-    )
+)
 
 
 class TestCommand(ResourcedTestCase):
-
     def get_test_ui_and_cmd(self, args=(), options=()):
         ui = UI(args=args, options=options)
         cmd = last.last(ui)
@@ -45,17 +44,27 @@ class TestCommand(ResourcedTestCase):
         repo = cmd.repository_factory.initialise(ui.here)
         inserter = repo.get_inserter()
         inserter.startTestRun()
-        inserter.status(test_id='failing', test_status='fail')
-        inserter.status(test_id='ok', test_status='success')
+        inserter.status(test_id="failing", test_status="fail")
+        inserter.status(test_id="ok", test_status="success")
         inserter.stopTestRun()
         id = inserter.get_id()
         self.assertEqual(1, cmd.execute())
         # We should have seen test outputs (of the failure) and summary data.
-        self.assertEqual([
-            ('results', Wildcard),
-            ('summary', False, 2, None, Wildcard, Wildcard,
-             [('id', id, None), ('failures', 1, None)])],
-            ui.outputs)
+        self.assertEqual(
+            [
+                ("results", Wildcard),
+                (
+                    "summary",
+                    False,
+                    2,
+                    None,
+                    Wildcard,
+                    Wildcard,
+                    [("id", id, None), ("failures", 1, None)],
+                ),
+            ],
+            ui.outputs,
+        )
         suite = ui.outputs[0][1]
         result = testtools.StreamSummary()
         result.startTestRun()
@@ -69,8 +78,8 @@ class TestCommand(ResourcedTestCase):
     def _add_run(self, repo):
         inserter = repo.get_inserter()
         inserter.startTestRun()
-        inserter.status(test_id='failing', test_status='fail')
-        inserter.status(test_id='ok', test_status='success')
+        inserter.status(test_id="failing", test_status="fail")
+        inserter.status(test_id="ok", test_status="success")
         inserter.stopTestRun()
         return inserter.get_id()
 
@@ -82,11 +91,21 @@ class TestCommand(ResourcedTestCase):
         id = self._add_run(repo)
         self.assertEqual(1, cmd.execute())
         # We should have seen test outputs (of the failure) and summary data.
-        self.assertEqual([
-            ('results', Wildcard),
-            ('summary', False, 2, 0, Wildcard, Wildcard,
-             [('id', id, None), ('failures', 1, 0)])],
-            ui.outputs)
+        self.assertEqual(
+            [
+                ("results", Wildcard),
+                (
+                    "summary",
+                    False,
+                    2,
+                    0,
+                    Wildcard,
+                    Wildcard,
+                    [("id", id, None), ("failures", 1, 0)],
+                ),
+            ],
+            ui.outputs,
+        )
         suite = ui.outputs[0][1]
         result = testtools.StreamSummary()
         result.startTestRun()
@@ -98,15 +117,18 @@ class TestCommand(ResourcedTestCase):
         self.assertEqual(2, result.testsRun)
 
     def test_shows_subunit_stream(self):
-        ui, cmd = self.get_test_ui_and_cmd(options=[('subunit', True)])
+        ui, cmd = self.get_test_ui_and_cmd(options=[("subunit", True)])
         cmd.repository_factory = memory.RepositoryFactory()
         repo = cmd.repository_factory.initialise(ui.here)
         self._add_run(repo)
         self.assertEqual(0, cmd.execute())
         # We should have seen test outputs (of the failure) and summary data.
-        self.assertEqual([
-            ('stream', Wildcard),
-            ], ui.outputs)
+        self.assertEqual(
+            [
+                ("stream", Wildcard),
+            ],
+            ui.outputs,
+        )
         as_subunit = BytesIO(ui.outputs[0][1])
         stream = ByteStreamToStreamResult(as_subunit)
         log = StreamResult()
@@ -116,11 +138,35 @@ class TestCommand(ResourcedTestCase):
         finally:
             log.stopTestRun()
         self.assertEqual(
-            log._events, [
-            ('startTestRun',),
-            ('status', 'failing', 'fail', None, True, None, None, False,
-             None, None, None),
-            ('status', 'ok', 'success', None, True, None, None, False, None,
-             None, None),
-            ('stopTestRun',)
-            ])
+            log._events,
+            [
+                ("startTestRun",),
+                (
+                    "status",
+                    "failing",
+                    "fail",
+                    None,
+                    True,
+                    None,
+                    None,
+                    False,
+                    None,
+                    None,
+                    None,
+                ),
+                (
+                    "status",
+                    "ok",
+                    "success",
+                    None,
+                    True,
+                    None,
+                    None,
+                    False,
+                    None,
+                    None,
+                    None,
+                ),
+                ("stopTestRun",),
+            ],
+        )

@@ -29,7 +29,6 @@ from testrepository.tests import ResourcedTestCase
 
 
 class TestCommand(ResourcedTestCase):
-
     def get_test_ui_and_cmd(self, options=(), args=()):
         ui = UI(options=options, args=args)
         cmd = slowest.slowest(ui)
@@ -55,10 +54,12 @@ class TestCommand(ResourcedTestCase):
         """
         test_id = self.getUniqueString()
         start_time = datetime.now(timezone.utc)
-        inserter.status(test_id=test_id, test_status='inprogress',
-            timestamp=start_time)
-        inserter.status(test_id=test_id, test_status='success',
-            timestamp=start_time + timedelta(seconds=runtime))
+        inserter.status(test_id=test_id, test_status="inprogress", timestamp=start_time)
+        inserter.status(
+            test_id=test_id,
+            test_status="success",
+            timestamp=start_time + timedelta(seconds=runtime),
+        )
         return test_id
 
     def test_shows_one_test_when_one_test(self):
@@ -69,15 +70,19 @@ class TestCommand(ResourcedTestCase):
         inserter = repo.get_inserter()
         inserter.startTestRun()
         runtime = 0.1
-        test_id = self.insert_one_test_with_runtime(
-            inserter, runtime)
+        test_id = self.insert_one_test_with_runtime(inserter, runtime)
         inserter.stopTestRun()
         retcode = cmd.execute()
         self.assertEqual(
-            [('table',
-                [slowest.slowest.TABLE_HEADER]
-                + slowest.slowest.format_times([(test_id, runtime)]))],
-            ui.outputs)
+            [
+                (
+                    "table",
+                    [slowest.slowest.TABLE_HEADER]
+                    + slowest.slowest.format_times([(test_id, runtime)]),
+                )
+            ],
+            ui.outputs,
+        )
         self.assertEqual(0, retcode)
 
     def test_orders_tests_based_on_runtime(self):
@@ -88,30 +93,23 @@ class TestCommand(ResourcedTestCase):
         inserter = repo.get_inserter()
         inserter.startTestRun()
         runtime1 = 1.1
-        test_id1 = self.insert_one_test_with_runtime(
-            inserter, runtime1)
+        test_id1 = self.insert_one_test_with_runtime(inserter, runtime1)
         runtime2 = 0.1
-        test_id2 = self.insert_one_test_with_runtime(
-            inserter, runtime2)
+        test_id2 = self.insert_one_test_with_runtime(inserter, runtime2)
         inserter.stopTestRun()
         retcode = cmd.execute()
-        rows = [(test_id1, runtime1),
-                (test_id2, runtime2)]
+        rows = [(test_id1, runtime1), (test_id2, runtime2)]
         rows = slowest.slowest.format_times(rows)
         self.assertEqual(0, retcode)
-        self.assertEqual(
-            [('table',
-                [slowest.slowest.TABLE_HEADER] + rows)],
-            ui.outputs)
+        self.assertEqual([("table", [slowest.slowest.TABLE_HEADER] + rows)], ui.outputs)
 
     def insert_lots_of_tests_with_timing(self, repo):
         inserter = repo.get_inserter()
         inserter.startTestRun()
         runtimes = [float(r) for r in range(slowest.slowest.DEFAULT_ROWS_SHOWN + 1)]
         test_ids = [
-            self.insert_one_test_with_runtime(
-                inserter, runtime)
-            for runtime in runtimes]
+            self.insert_one_test_with_runtime(inserter, runtime) for runtime in runtimes
+        ]
         inserter.stopTestRun()
         return test_ids, runtimes
 
@@ -122,18 +120,16 @@ class TestCommand(ResourcedTestCase):
         repo = cmd.repository_factory.initialise(ui.here)
         test_ids, runtimes = self.insert_lots_of_tests_with_timing(repo)
         retcode = cmd.execute()
-        rows = list(zip(reversed(test_ids), reversed(runtimes))
-            )[:slowest.slowest.DEFAULT_ROWS_SHOWN]
+        rows = list(zip(reversed(test_ids), reversed(runtimes)))[
+            : slowest.slowest.DEFAULT_ROWS_SHOWN
+        ]
         rows = slowest.slowest.format_times(rows)
         self.assertEqual(0, retcode)
-        self.assertEqual(
-            [('table',
-                [slowest.slowest.TABLE_HEADER] + rows)],
-            ui.outputs)
+        self.assertEqual([("table", [slowest.slowest.TABLE_HEADER] + rows)], ui.outputs)
 
     def test_option_to_show_all_rows_does_so(self):
         """When the all option is given all rows are shown."""
-        ui, cmd = self.get_test_ui_and_cmd(options=[('all', True)])
+        ui, cmd = self.get_test_ui_and_cmd(options=[("all", True)])
         cmd.repository_factory = memory.RepositoryFactory()
         repo = cmd.repository_factory.initialise(ui.here)
         test_ids, runtimes = self.insert_lots_of_tests_with_timing(repo)
@@ -141,7 +137,4 @@ class TestCommand(ResourcedTestCase):
         rows = zip(reversed(test_ids), reversed(runtimes))
         rows = slowest.slowest.format_times(rows)
         self.assertEqual(0, retcode)
-        self.assertEqual(
-            [('table',
-                [slowest.slowest.TABLE_HEADER] + rows)],
-            ui.outputs)
+        self.assertEqual([("table", [slowest.slowest.TABLE_HEADER] + rows)], ui.outputs)

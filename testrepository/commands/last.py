@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
@@ -35,9 +35,12 @@ class last(Command):
 
     options = [
         optparse.Option(
-            "--subunit", action="store_true",
-            default=False, help="Show output as a subunit stream."),
-        ]
+            "--subunit",
+            action="store_true",
+            default=False,
+            help="Show output as a subunit stream.",
+        ),
+    ]
     # Can be assigned to to inject a custom command factory.
     command_factory = TestCommand
 
@@ -57,7 +60,8 @@ class last(Command):
             previous_run = None
         failed = False
         result, summary = self.ui.make_result(
-            latest_run.get_id, testcommand, previous_run=previous_run)
+            latest_run.get_id, testcommand, previous_run=previous_run
+        )
         result.startTestRun()
         try:
             case.run(result)

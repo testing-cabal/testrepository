@@ -29,26 +29,30 @@ class slowest(Command):
     """
 
     DEFAULT_ROWS_SHOWN = 10
-    TABLE_HEADER = ('Test id', 'Runtime (s)')
+    TABLE_HEADER = ("Test id", "Runtime (s)")
 
     options = [
         optparse.Option(
-            "--all", action="store_true",
-            default=False, help="Show timing for all tests."),
-        ]
+            "--all",
+            action="store_true",
+            default=False,
+            help="Show timing for all tests.",
+        ),
+    ]
 
     @staticmethod
     def format_times(times):
         times = list(times)
         precision = 3
-        digits_before_point = int(
-            math.log10(times[0][1])) + 1
+        digits_before_point = int(math.log10(times[0][1])) + 1
         min_length = digits_before_point + precision + 1
+
         def format_time(time):
             # Limit the number of digits after the decimal
             # place, and also enforce a minimum width
             # based on the longest duration
             return "%*.*f" % (min_length, precision, time)
+
         times = [(name, format_time(time)) for name, time in times]
         return times
 
@@ -60,11 +64,11 @@ class slowest(Command):
             return 3
         # what happens when there is no timing info?
         test_times = repo.get_test_times(repo.get_test_ids(latest_id))
-        known_times =list( test_times['known'].items())
+        known_times = list(test_times["known"].items())
         known_times.sort(key=itemgetter(1), reverse=True)
         if len(known_times) > 0:
             if not self.ui.options.all:
-                known_times = known_times[:self.DEFAULT_ROWS_SHOWN]
+                known_times = known_times[: self.DEFAULT_ROWS_SHOWN]
             known_times = self.format_times(known_times)
             rows = [self.TABLE_HEADER] + known_times
             self.ui.output_table(rows)

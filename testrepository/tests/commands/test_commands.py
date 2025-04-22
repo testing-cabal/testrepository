@@ -1,11 +1,11 @@
 #
 # Copyright (c) 2009, 2010 Testrepository Contributors
-# 
+#
 # Licensed under either the Apache License, Version 2.0 or the BSD 3-clause
 # license at the users choice. A copy of both licenses are available in the
 # project source as Apache-2.0 and BSD. You may not use this file except in
 # compliance with one of these two licences.
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under these licenses is distributed on an "AS IS" BASIS, WITHOUT
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
@@ -20,7 +20,6 @@ from testrepository.tests import ResourcedTestCase
 
 
 class TestCommandCommands(ResourcedTestCase):
-
     def get_test_ui_and_cmd(self):
         ui = UI()
         cmd = commands.commands(ui)
@@ -31,10 +30,9 @@ class TestCommandCommands(ResourcedTestCase):
         ui, cmd = self.get_test_ui_and_cmd()
         cmd.execute()
         self.assertEqual(1, len(ui.outputs))
-        self.assertEqual('table', ui.outputs[0][0])
-        self.assertEqual(('command', 'description'), ui.outputs[0][1][0])
+        self.assertEqual("table", ui.outputs[0][0])
+        self.assertEqual(("command", "description"), ui.outputs[0][1][0])
         command_names = [row[0] for row in ui.outputs[0][1]]
         summaries = [row[1] for row in ui.outputs[0][1]]
-        self.assertTrue('load' in command_names)
-        self.assertTrue(
-            'Load a subunit stream into a repository.' in summaries)
+        self.assertTrue("load" in command_names)
+        self.assertTrue("Load a subunit stream into a repository." in summaries)
